@@ -1,0 +1,19 @@
+{
+  "name": "カトル - 戦略カードゲーム",
+  "short_name": "カトル",
+  "description": "2人用戦略カードゲーム",
+  "start_url": "/cuttle-game/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1a1a2e",
+  "theme_color": "#1a1a2e",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
+
