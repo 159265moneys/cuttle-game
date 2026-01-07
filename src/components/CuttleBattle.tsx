@@ -30,6 +30,19 @@ const RACE_NAMES: Record<string, string> = {
   Demon: 'デーモン',
 };
 
+// カード枚数から表示する重なり枚数を計算
+function getStackCount(count: number): number {
+  if (count <= 1) return count;
+  if (count <= 5) return count;
+  if (count <= 10) return 6;
+  if (count <= 15) return 7;
+  if (count <= 20) return 8;
+  if (count <= 25) return 9;
+  if (count <= 30) return 10;
+  if (count <= 35) return 11;
+  return 12;
+}
+
 // アクションログメッセージを生成
 function getActionLogMessage(state: GameState): string {
   const { phase, message, selectedCard, selectedAction } = state;
@@ -534,10 +547,33 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
       
       {/* 山札・メッセージ・墓地 */}
       <div className="cuttle-deck-area">
-        {/* 山札 */}
-        <div className="cuttle-deck-card">
-          <span className="pile-title">山札</span>
-          <span className="pile-count">残り{gameState.deck.length}枚</span>
+        {/* 山札 - 重なり表現 */}
+        <div className="cuttle-pile-stack">
+          {Array.from({ length: getStackCount(gameState.deck.length) }).map((_, i, arr) => (
+            <div
+              key={`deck-${i}`}
+              className="cuttle-deck-card"
+              style={{
+                position: i === arr.length - 1 ? 'relative' : 'absolute',
+                top: `${-i * 0.7}px`,
+                left: `${i * 0.35}px`,
+                zIndex: i,
+              }}
+            >
+              {i === arr.length - 1 && (
+                <>
+                  <span className="pile-title">山札</span>
+                  <span className="pile-count">{gameState.deck.length}</span>
+                </>
+              )}
+            </div>
+          ))}
+          {gameState.deck.length === 0 && (
+            <div className="cuttle-deck-card empty">
+              <span className="pile-title">山札</span>
+              <span className="pile-count">0</span>
+            </div>
+          )}
         </div>
         
         {/* アクションログ */}
@@ -550,13 +586,33 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
           </span>
         </div>
         
-        {/* 墓地 */}
-        <div 
-          className="cuttle-scrap-card"
-          onClick={() => setShowScrapModal(true)}
-        >
-          <span className="pile-title">墓地</span>
-          <span className="pile-count">残り{gameState.scrapPile.length}枚</span>
+        {/* 墓地 - 重なり表現 */}
+        <div className="cuttle-pile-stack" onClick={() => setShowScrapModal(true)}>
+          {Array.from({ length: getStackCount(gameState.scrapPile.length) }).map((_, i, arr) => (
+            <div
+              key={`scrap-${i}`}
+              className="cuttle-scrap-card"
+              style={{
+                position: i === arr.length - 1 ? 'relative' : 'absolute',
+                top: `${-i * 0.7}px`,
+                right: `${i * 0.35}px`,
+                zIndex: i,
+              }}
+            >
+              {i === arr.length - 1 && (
+                <>
+                  <span className="pile-title">墓地</span>
+                  <span className="pile-count">{gameState.scrapPile.length}</span>
+                </>
+              )}
+            </div>
+          ))}
+          {gameState.scrapPile.length === 0 && (
+            <div className="cuttle-scrap-card empty">
+              <span className="pile-title">墓地</span>
+              <span className="pile-count">0</span>
+            </div>
+          )}
         </div>
       </div>
       
