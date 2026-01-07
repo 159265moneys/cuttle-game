@@ -1061,22 +1061,30 @@
 
 /* 種族別アイコン・イラスト色 */
 .suit-human .card-suit-icon,
-.suit-human .card-face-art {
+.suit-human .card-face-art,
+.suit-human .card-pip,
+.suit-human .field-card-info-icon {
     background-color: var(--race-human);
 }
 
 .suit-demon .card-suit-icon,
-.suit-demon .card-face-art {
+.suit-demon .card-face-art,
+.suit-demon .card-pip,
+.suit-demon .field-card-info-icon {
     background-color: var(--race-demon);
 }
 
 .suit-elf .card-suit-icon,
-.suit-elf .card-face-art {
+.suit-elf .card-face-art,
+.suit-elf .card-pip,
+.suit-elf .field-card-info-icon {
     background-color: var(--race-elf);
 }
 
 .suit-goblin .card-suit-icon,
-.suit-goblin .card-face-art {
+.suit-goblin .card-face-art,
+.suit-goblin .card-pip,
+.suit-goblin .field-card-info-icon {
     background-color: var(--race-goblin);
 }
 
