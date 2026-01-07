@@ -43,41 +43,18 @@ function getStackCount(count: number): number {
   return 12;
 }
 
-// アクションログメッセージを生成
-function getActionLogMessage(state: GameState): string {
-  const { phase, message, selectedCard, selectedAction } = state;
-  
-  if (phase === 'gameOver') {
-    return 'ゲーム終了';
-  }
-  
-  if (phase === 'selectTarget') {
-    if (selectedAction === 'scuttle') return 'スカトル対象を選択中...';
-    if (selectedCard?.rank === '3') return '墓地から回収するカードを選択...';
-    if (selectedCard?.rank === 'J') return '略奪する点数カードを選択...';
-    return 'ターゲットを選択中...';
-  }
-  
-  if (phase === 'opponentDiscard') {
-    return '手札を捨てています...';
-  }
-  
-  // デフォルトメッセージ
-  if (message) {
-    // 「〇〇のターン」を変換
-    if (message.includes('ターン')) {
-      return 'ターン開始';
-    }
-    return message;
-  }
-  
-  return 'アクションを選択';
+// ログエントリ
+interface LogEntry {
+  id: number;
+  player: 'player1' | 'player2';
+  message: string;
 }
 
 const CuttleBattle: React.FC<CuttleBattleProps> = ({
   isOpen,
   onClose,
   gameState,
+  onCardSelect,
   onFieldCardSelect,
   onScrapSelect,
   onAction,
@@ -92,6 +69,15 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const [showScrapModal, setShowScrapModal] = useState(false);
   
+  // アクション確認モーダル用
+  const [pendingCard, setPendingCard] = useState<Card | null>(null);
+  const [pendingTarget, setPendingTarget] = useState<FieldCard | null>(null);
+  const [showActionModal, setShowActionModal] = useState(false);
+  
+  // ログシステム
+  const [actionLogs, setActionLogs] = useState<LogEntry[]>([]);
+  const logIdRef = useRef(0);
+  
   // refs
   const screenRef = useRef<HTMLDivElement>(null);
   const playerPointsRef = useRef<HTMLDivElement>(null);
@@ -100,6 +86,63 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   
   const player = gameState.player1;
   const enemy = gameState.player2;
+  
+  // ログ追加関数
+  const addLog = useCallback((playerType: 'player1' | 'player2', message: string) => {
+    logIdRef.current += 1;
+    setActionLogs(prev => {
+      const newLogs = [...prev, { id: logIdRef.current, player: playerType, message }];
+      return newLogs.slice(-5); // 最新5件のみ
+    });
+  }, []);
+  
+  // ゲーム状態の変化を監視してログを追加
+  const prevPhaseRef = useRef(gameState.phase);
+  const prevPlayer1FieldRef = useRef(player.field.length);
+  const prevPlayer2FieldRef = useRef(enemy.field.length);
+  const prevScrapRef = useRef(gameState.scrapPile.length);
+  
+  useEffect(() => {
+    // フィールドカード数の変化を検出
+    const p1FieldDiff = player.field.length - prevPlayer1FieldRef.current;
+    const p2FieldDiff = enemy.field.length - prevPlayer2FieldRef.current;
+    const scrapDiff = gameState.scrapPile.length - prevScrapRef.current;
+    
+    // プレイヤーがカードをプレイ
+    if (p1FieldDiff > 0 && gameState.currentPlayer === 'player2') {
+      const newCard = player.field[player.field.length - 1];
+      if (newCard) {
+        addLog('player1', `${newCard.card.rank}をプレイ`);
+      }
+    }
+    
+    // CPUがカードをプレイ
+    if (p2FieldDiff > 0 && gameState.currentPlayer === 'player1') {
+      const newCard = enemy.field[enemy.field.length - 1];
+      if (newCard) {
+        addLog('player2', `${newCard.card.rank}をプレイ`);
+      }
+    }
+    
+    // カードが墓地に送られた
+    if (scrapDiff > 0) {
+      const lastScrap = gameState.scrapPile[gameState.scrapPile.length - 1];
+      if (lastScrap && prevPhaseRef.current !== 'gameOver') {
+        // 詳細なログは難しいのでシンプルに
+      }
+    }
+    
+    // ゲームオーバー
+    if (gameState.phase === 'gameOver' && prevPhaseRef.current !== 'gameOver') {
+      const winner = player.field.reduce((sum, fc) => sum + fc.card.value, 0) >= 21 ? 'player1' : 'player2';
+      addLog(winner, '勝利！');
+    }
+    
+    prevPhaseRef.current = gameState.phase;
+    prevPlayer1FieldRef.current = player.field.length;
+    prevPlayer2FieldRef.current = enemy.field.length;
+    prevScrapRef.current = gameState.scrapPile.length;
+  }, [gameState, player.field, enemy.field, addLog]);
   
   // 点数計算
   const calculatePoints = (field: FieldCard[]) => {
@@ -132,6 +175,71 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
     setDropTarget(null);
   }, []);
   
+  // アクション確認モーダルを閉じる
+  const closeActionModal = useCallback(() => {
+    setShowActionModal(false);
+    setPendingCard(null);
+    setPendingTarget(null);
+  }, []);
+  
+  // スカトル実行
+  const executeScuttle = useCallback(() => {
+    if (!pendingCard || !pendingTarget) return;
+    
+    // まずカードを選択
+    onCardSelect(pendingCard);
+    
+    // スカトルアクションを開始してからターゲット選択
+    setTimeout(() => {
+      onAction('scuttle');
+      setTimeout(() => {
+        onFieldCardSelect(pendingTarget);
+        addLog('player1', `${pendingCard.rank}で${pendingTarget.card.rank}を破壊`);
+      }, 50);
+    }, 50);
+    
+    closeActionModal();
+  }, [pendingCard, pendingTarget, onCardSelect, onAction, onFieldCardSelect, addLog, closeActionModal]);
+  
+  // 効果発動実行
+  const executeEffect = useCallback(() => {
+    if (!pendingCard || !pendingTarget) return;
+    
+    // まずカードを選択
+    onCardSelect(pendingCard);
+    
+    if (pendingCard.rank === 'J') {
+      // J: 略奪
+      setTimeout(() => {
+        onAction('playPermanent');
+        setTimeout(() => {
+          onFieldCardSelect(pendingTarget);
+          addLog('player1', `Jで${pendingTarget.card.rank}を略奪`);
+        }, 50);
+      }, 50);
+    } else if (['A', '2'].includes(pendingCard.rank)) {
+      // A, 2: 永続効果破壊
+      setTimeout(() => {
+        onAction('playOneOff');
+        setTimeout(() => {
+          onFieldCardSelect(pendingTarget);
+          addLog('player1', `${pendingCard.rank}で${pendingTarget.card.rank}を破壊`);
+        }, 50);
+      }, 50);
+    } else if (pendingCard.rank === '9') {
+      // 9: カードを手札に戻す
+      setTimeout(() => {
+        onAction('playOneOff');
+        setTimeout(() => {
+          onFieldCardSelect(pendingTarget);
+          addLog('player1', `9で${pendingTarget.card.rank}を手札に戻した`);
+        }, 50);
+      }, 50);
+    }
+    
+    closeActionModal();
+  }, [pendingCard, pendingTarget, onCardSelect, onAction, onFieldCardSelect, addLog, closeActionModal]);
+  
   // タッチ開始
   const handleTouchStart = useCallback((e: React.TouchEvent | React.MouseEvent, index: number) => {
     if (isCPUTurn || gameState.phase === 'gameOver') return;
@@ -142,11 +250,17 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
     const touch = 'touches' in e ? e.touches[0] : e;
     const startPos = { x: touch.clientX, y: touch.clientY };
     
+    // カードを選択状態にする（これがないとplayAsPoint等が動かない）
+    const card = player.hand[index];
+    if (card) {
+      onCardSelect(card);
+    }
+    
     setTouchStart(startPos);
     setTouchCurrent(startPos);
     setSelectedIndex(index);
     setMode('browsing');
-  }, [isCPUTurn, gameState.phase]);
+  }, [isCPUTurn, gameState.phase, player.hand, onCardSelect]);
   
   // タッチ移動
   const handleTouchMove = useCallback((e: TouchEvent | MouseEvent) => {
@@ -232,31 +346,37 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
           // 点数として出す
           if (card.value > 0) {
             onAction('playPoint');
+            addLog('player1', `${card.rank}を点数としてプレイ`);
           }
         } else if (dropTarget === 'playerEffects') {
           // 効果として出す
           if (isPermanentEffect(card)) {
-            onAction('playPermanent');
+            // J以外の永続効果（8, Q, K）
+            if (card.rank !== 'J') {
+              onAction('playPermanent');
+              addLog('player1', `${card.rank}の効果を発動`);
+            }
           } else {
-            onAction('playOneOff');
+            // ワンオフ効果（ターゲット不要のもの）
+            if (!['A', '2', '9'].includes(card.rank)) {
+              onAction('playOneOff');
+              addLog('player1', `${card.rank}の効果を発動`);
+            }
           }
         } else if (dropTarget.startsWith('enemyCard:')) {
-          // 敵カードへのターゲット効果
+          // 敵カードへのドロップ → アクション確認モーダル表示
           const targetIndex = parseInt(dropTarget.split(':')[1]);
           const targetFC = enemyPointCards[targetIndex];
           
           if (targetFC) {
-            // J → 略奪
-            if (card.rank === 'J') {
-              onFieldCardSelect(targetFC);
-            }
-            // スカトル可能チェック
-            else if (card.value > 0 && card.value >= targetFC.card.value) {
-              onFieldCardSelect(targetFC);
-            }
-            // A, 2 → 永続破壊
-            else if (['A', '2'].includes(card.rank)) {
-              onFieldCardSelect(targetFC);
+            // 有効なアクションがあるかチェック
+            const canScuttle = card.value > 0 && card.value >= targetFC.card.value;
+            const canUseEffect = ['A', '2', '9', 'J'].includes(card.rank);
+            
+            if (canScuttle || canUseEffect) {
+              setPendingCard(card);
+              setPendingTarget(targetFC);
+              setShowActionModal(true);
             }
           }
         }
@@ -268,7 +388,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
     setMode('default');
     setSelectedIndex(-1);
     setDropTarget(null);
-  }, [mode, selectedIndex, dropTarget, player.hand, enemyPointCards, onAction, onFieldCardSelect, hideBrowsing]);
+  }, [mode, selectedIndex, dropTarget, player.hand, enemyPointCards, onAction, hideBrowsing, addLog]);
   
   // グローバルイベント
   useEffect(() => {
@@ -576,14 +696,20 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
           )}
         </div>
         
-        {/* アクションログ */}
+        {/* アクションログ - 最新5件表示 */}
         <div className="cuttle-action-log">
-          <span className={`log-player ${gameState.currentPlayer}`}>
-            {gameState.currentPlayer === 'player1' ? player.name : enemy.name}
-          </span>
-          <span className="log-action">
-            {getActionLogMessage(gameState)}
-          </span>
+          {actionLogs.length === 0 ? (
+            <span className="log-action">ゲーム開始</span>
+          ) : (
+            <div className="log-entries">
+              {actionLogs.map(log => (
+                <div key={log.id} className={`log-entry ${log.player}`}>
+                  <span className="log-name">{log.player === 'player1' ? player.name : enemy.name}</span>
+                  <span className="log-msg">{log.message}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         
         {/* 墓地 - 重なり表現 */}
@@ -740,6 +866,50 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
           閉じる
         </button>
       </div>
+      
+      {/* アクション確認モーダル */}
+      {showActionModal && pendingCard && pendingTarget && (
+        <div className="cuttle-action-modal">
+          <div className="action-modal-content">
+            <div className="action-modal-title">
+              {pendingCard.rank} → {pendingTarget.card.rank}
+            </div>
+            <div className="action-modal-desc">
+              どのアクションを実行しますか？
+            </div>
+            <div className="action-modal-buttons">
+              {/* 効果発動ボタン（A, 2, 9, J） */}
+              {pendingCard.rank === 'J' && (
+                <button className="action-btn effect" onClick={executeEffect}>
+                  略奪する
+                </button>
+              )}
+              {['A', '2'].includes(pendingCard.rank) && (
+                <button className="action-btn effect" onClick={executeEffect}>
+                  {pendingCard.rank}の効果で破壊
+                </button>
+              )}
+              {pendingCard.rank === '9' && (
+                <button className="action-btn effect" onClick={executeEffect}>
+                  手札に戻す
+                </button>
+              )}
+              
+              {/* スカトルボタン（点数カードで相手の点数カードを破壊） */}
+              {pendingCard.value > 0 && pendingCard.value >= pendingTarget.card.value && (
+                <button className="action-btn scuttle" onClick={executeScuttle}>
+                  スカトル（破壊）
+                </button>
+              )}
+              
+              {/* 戻るボタン */}
+              <button className="action-btn cancel" onClick={closeActionModal}>
+                戻る
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

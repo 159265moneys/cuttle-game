@@ -952,3 +952,114 @@
     font-family: 'MedievalSharp', serif;
 }
 
+/* ========== アクション確認モーダル ========== */
+.cuttle-action-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10006;
+}
+
+.action-modal-content {
+    background: linear-gradient(180deg, #2a2535, #1a1825);
+    border: 2px solid #c9a227;
+    border-radius: 16px;
+    padding: 20px 24px;
+    min-width: 260px;
+    text-align: center;
+}
+
+.action-modal-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #c9a227;
+    margin-bottom: 8px;
+    font-family: 'Cinzel', serif;
+}
+
+.action-modal-desc {
+    font-size: 0.8rem;
+    color: #a89888;
+    margin-bottom: 16px;
+}
+
+.action-modal-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.action-btn {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: 'MedievalSharp', serif;
+}
+
+.action-btn.effect {
+    background: linear-gradient(135deg, #2d5a3a, #1a3a26);
+    color: #a8e6a3;
+    border: 1px solid #2d8a4e;
+}
+
+.action-btn.scuttle {
+    background: linear-gradient(135deg, #5a2d3a, #3a1a26);
+    color: #e6a3a8;
+    border: 1px solid #8a2d4e;
+}
+
+.action-btn.cancel {
+    background: rgba(60, 50, 40, 0.6);
+    color: #a89888;
+    border: 1px solid #5a4a3a;
+}
+
+.action-btn:active {
+    transform: scale(0.95);
+}
+
+/* ========== ログエントリ ========== */
+.log-entries {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: 100%;
+    max-height: 100%;
+    overflow-y: auto;
+}
+
+.log-entry {
+    display: flex;
+    gap: 6px;
+    font-size: 0.65rem;
+    line-height: 1.3;
+    padding: 1px 0;
+}
+
+.log-entry.player1 .log-name {
+    color: #c9a227;
+}
+
+.log-entry.player2 .log-name {
+    color: #e6a3b3;
+}
+
+.log-entry .log-name {
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.log-entry .log-msg {
+    color: #e8e0d4;
+}
+
