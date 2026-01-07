@@ -1070,28 +1070,32 @@
 .suit-human .card-suit-icon,
 .suit-human .card-face-art,
 .suit-human .card-pip,
-.suit-human .field-card-info-icon {
+.suit-human .field-card-info-icon,
+.suit-human .effect-icon {
     background-color: var(--race-human);
 }
 
 .suit-demon .card-suit-icon,
 .suit-demon .card-face-art,
 .suit-demon .card-pip,
-.suit-demon .field-card-info-icon {
+.suit-demon .field-card-info-icon,
+.suit-demon .effect-icon {
     background-color: var(--race-demon);
 }
 
 .suit-elf .card-suit-icon,
 .suit-elf .card-face-art,
 .suit-elf .card-pip,
-.suit-elf .field-card-info-icon {
+.suit-elf .field-card-info-icon,
+.suit-elf .effect-icon {
     background-color: var(--race-elf);
 }
 
 .suit-goblin .card-suit-icon,
 .suit-goblin .card-face-art,
 .suit-goblin .card-pip,
-.suit-goblin .field-card-info-icon {
+.suit-goblin .field-card-info-icon,
+.suit-goblin .effect-icon {
     background-color: var(--race-goblin);
 }
 
@@ -1209,72 +1213,110 @@
     display: block;
 }
 
-/* プレビューコンテナ（カード＋効果ボックス） */
+/* プレビューコンテナ（カード＋効果ボックス）- 1.5倍サイズ */
 .cuttle-preview-container {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
+    gap: 18px;
 }
 
 .cuttle-preview-card {
     position: relative;
-    width: 140px;
+    width: 210px;  /* 140 * 1.5 */
     aspect-ratio: 5 / 7;
     background: transparent;
-    border: 3px solid rgba(80, 60, 40, 0.8);
-    border-radius: 12px;
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7), 0 0 25px rgba(201, 162, 39, 0.2);
+    border: 4px solid rgba(80, 60, 40, 0.8);
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 35px rgba(201, 162, 39, 0.2);
     overflow: hidden;
     flex-shrink: 0;
 }
 
 .cuttle-preview-card .card-parchment {
-    border-radius: 9px;
+    border-radius: 12px;
 }
 
 .cuttle-preview-card .card-rank.top-left {
-    top: 6px;
-    left: 8px;
-    font-size: 1.2rem;
+    top: 10px;
+    left: 12px;
+    font-size: 1.8rem;
 }
 
 .cuttle-preview-card .card-rank.bottom-right {
-    bottom: 6px;
-    right: 8px;
-    font-size: 1.2rem;
+    bottom: 10px;
+    right: 12px;
+    font-size: 1.8rem;
 }
 
-/* 効果テキストボックス（カードの下） */
+.cuttle-preview-card .card-suit-icon.top-left {
+    top: 36px;
+    left: 12px;
+    width: 24px;
+    height: 24px;
+}
+
+.cuttle-preview-card .card-suit-icon.bottom-right {
+    bottom: 12px;
+    right: 12px;
+    width: 24px;
+    height: 24px;
+}
+
+.cuttle-preview-card .card-face-art {
+    width: 120px;
+    height: 150px;
+}
+
+.cuttle-preview-card .card-pip {
+    width: 22px;
+    height: 22px;
+}
+
+/* 効果テキストボックス（カードの下）- 1.5倍サイズ */
 .preview-effect-box {
-    width: 160px;
+    width: 240px;  /* 160 * 1.5 */
     background: linear-gradient(180deg, rgba(30, 25, 20, 0.95), rgba(20, 15, 10, 0.95));
     border: 2px solid rgba(120, 90, 50, 0.6);
-    border-radius: 8px;
-    padding: 10px 12px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+    border-radius: 10px;
+    padding: 15px 18px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+}
+
+.preview-effect-box .effect-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(120, 90, 50, 0.4);
+}
+
+.preview-effect-box .effect-icon {
+    width: 20px;
+    height: 20px;
+    background-color: currentColor;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
 }
 
 .preview-effect-box .effect-title {
-    font-size: 0.85rem;
+    font-size: 1.1rem;
     font-weight: 700;
     color: #c9a227;
-    margin-bottom: 6px;
-    text-align: center;
     font-family: 'Cinzel', serif;
-    border-bottom: 1px solid rgba(120, 90, 50, 0.4);
-    padding-bottom: 5px;
 }
 
 .preview-effect-box .effect-text {
-    font-size: 0.75rem;
+    font-size: 0.95rem;
     color: rgba(220, 200, 160, 0.95);
-    line-height: 1.4;
+    line-height: 1.5;
     text-align: center;
-    border-radius: 6px;
-    border: 1px solid rgba(120, 90, 50, 0.4);
-    text-align: center;
-    z-index: 4;
 }
 
 /* スート色 - 枠線と発光 */

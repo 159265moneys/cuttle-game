@@ -351,12 +351,8 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   const handleTouchStart = useCallback((e: React.TouchEvent | React.MouseEvent, index: number) => {
     if (isCPUTurn || gameState.phase === 'gameOver') return;
     
-    // passiveイベントリスナーではpreventDefaultは使えないのでtry-catch
-    try {
-      e.preventDefault();
-    } catch {
-      // passive listenerでは無視
-    }
+    // ReactのイベントはpassiveではないのでpreventDefaultは使用可能
+    // ただしスクロール防止のみ必要な場合は後で行う
     e.stopPropagation();
     
     const touch = 'touches' in e ? e.touches[0] : e;
@@ -432,7 +428,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
       }
       
       // 敵のカード個別判定
-      const enemyCards = document.querySelectorAll('.cuttle-enemy-points-area .cuttle-field-card');
+      const enemyCards = document.querySelectorAll('.cuttle-enemy-points-area .cuttle-field-card-wrapper');
       enemyCards.forEach((card, i) => {
         const rect = card.getBoundingClientRect();
         if (current.x >= rect.left && current.x <= rect.right &&
@@ -730,8 +726,14 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
         </div>
         
         {/* 効果テキストボックス（カードの下） */}
-        <div className="preview-effect-box">
-          <div className="effect-title">{card.rank} - {RACE_NAMES[card.race]}</div>
+        <div className={`preview-effect-box ${getSuitClass(card)}`}>
+          <div className="effect-header">
+            <div 
+              className="effect-icon"
+              style={getSuitMaskStyle(card.race)}
+            />
+            <div className="effect-title">{card.rank} - {RACE_NAMES[card.race]}</div>
+          </div>
           <div className="effect-text">{getCardEffect(card)}</div>
         </div>
       </div>
