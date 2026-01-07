@@ -246,7 +246,12 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   const handleTouchStart = useCallback((e: React.TouchEvent | React.MouseEvent, index: number) => {
     if (isCPUTurn || gameState.phase === 'gameOver') return;
     
-    e.preventDefault();
+    // passiveイベントリスナーではpreventDefaultは使えないのでtry-catch
+    try {
+      e.preventDefault();
+    } catch {
+      // passive listenerでは無視
+    }
     e.stopPropagation();
     
     const touch = 'touches' in e ? e.touches[0] : e;
