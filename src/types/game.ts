@@ -62,6 +62,7 @@ export type ActionType =
   | 'playPoint'      // 点数カードとして配置
   | 'playOneOff'     // ワンオフ効果
   | 'playPermanent'  // 永続効果
+  | 'playKnight'     // 騎士で略奪（直接実行用）
   | 'scuttle'        // スカトル
   | 'pass';          // パス
 

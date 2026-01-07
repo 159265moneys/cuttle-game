@@ -147,6 +147,33 @@ function App() {
     }
   }, [gameState, isProcessing]);
 
+  // 直接アクション実行（カードとターゲットを直接渡す - 状態のクロージャ問題を回避）
+  const handleDirectAction = useCallback((action: ActionType, card: CardType, target?: FieldCard) => {
+    if (gameState.currentPlayer === 'player2' || isProcessing) return;
+
+    switch (action) {
+      case 'playKnight':
+        if (target && target.card.value > 0) {
+          const opponentId = getOpponent(gameState.currentPlayer);
+          const opponent = gameState[opponentId];
+          if (!hasQueen(opponent)) {
+            setGameState(playKnight(gameState, card, target));
+          }
+        }
+        break;
+      
+      case 'scuttle':
+        if (target && target.card.value > 0) {
+          setGameState(executeScuttle(gameState, card, target));
+        }
+        break;
+      
+      case 'playOneOff':
+        setGameState(executeOneOff(gameState, card, target));
+        break;
+    }
+  }, [gameState, isProcessing]);
+
   // アクション実行
   const handleAction = useCallback((action: ActionType) => {
     if (gameState.currentPlayer === 'player2' || isProcessing) return;
@@ -260,6 +287,7 @@ function App() {
       onFieldCardSelect={handleFieldCardSelect}
       onScrapSelect={handleScrapSelect}
       onAction={handleAction}
+      onDirectAction={handleDirectAction}
       onCancel={handleCancel}
       onRestart={handleRestart}
       isCPUTurn={gameState.currentPlayer === 'player2'}

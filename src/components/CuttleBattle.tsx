@@ -15,6 +15,7 @@ interface CuttleBattleProps {
   onFieldCardSelect: (fieldCard: FieldCard) => void;
   onScrapSelect: (card: Card) => void;
   onAction: (action: ActionType) => void;
+  onDirectAction: (action: ActionType, card: Card, target?: FieldCard) => void;
   onCancel: () => void;
   onRestart: () => void;
   isCPUTurn: boolean;
@@ -58,6 +59,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   onFieldCardSelect,
   onScrapSelect,
   onAction,
+  onDirectAction,
   onRestart,
   isCPUTurn,
 }) => {
@@ -182,65 +184,38 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
     setPendingTarget(null);
   }, []);
   
-  // スカトル実行
+  // スカトル実行（直接アクションを使用）
   const executeScuttle = useCallback(() => {
     if (!pendingCard || !pendingTarget) return;
     
-    // まずカードを選択
-    onCardSelect(pendingCard);
-    
-    // スカトルアクションを開始してからターゲット選択
-    // ReactのsetStateは非同期なので十分な時間を確保
-    setTimeout(() => {
-      onAction('scuttle');
-      setTimeout(() => {
-        onFieldCardSelect(pendingTarget);
-        addLog('player1', `${pendingCard.rank}で${pendingTarget.card.rank}を破壊`);
-      }, 150);
-    }, 150);
+    // 直接アクション実行（状態のクロージャ問題を回避）
+    onDirectAction('scuttle', pendingCard, pendingTarget);
+    addLog('player1', `${pendingCard.rank}で${pendingTarget.card.rank}を破壊`);
     
     closeActionModal();
-  }, [pendingCard, pendingTarget, onCardSelect, onAction, onFieldCardSelect, addLog, closeActionModal]);
+  }, [pendingCard, pendingTarget, onDirectAction, addLog, closeActionModal]);
   
-  // 効果発動実行
+  // 効果発動実行（直接アクションを使用）
   const executeEffect = useCallback(() => {
     if (!pendingCard || !pendingTarget) return;
     
-    // まずカードを選択
-    onCardSelect(pendingCard);
-    
-    // ReactのsetStateは非同期なので十分な時間を確保
+    // 直接アクション実行（状態のクロージャ問題を回避）
     if (pendingCard.rank === 'J') {
       // J: 略奪
-      setTimeout(() => {
-        onAction('playPermanent');
-        setTimeout(() => {
-          onFieldCardSelect(pendingTarget);
-          addLog('player1', `Jで${pendingTarget.card.rank}を略奪`);
-        }, 150);
-      }, 150);
-    } else if (['A', '2'].includes(pendingCard.rank)) {
-      // A, 2: 永続効果破壊
-      setTimeout(() => {
-        onAction('playOneOff');
-        setTimeout(() => {
-          onFieldCardSelect(pendingTarget);
-          addLog('player1', `${pendingCard.rank}で${pendingTarget.card.rank}を破壊`);
-        }, 150);
-      }, 150);
-    } else if (pendingCard.rank === '9') {
-      // 9: カードを手札に戻す
-      setTimeout(() => {
-        onAction('playOneOff');
-        setTimeout(() => {
-          onFieldCardSelect(pendingTarget);
-          addLog('player1', `9で${pendingTarget.card.rank}を手札に戻した`);
-        }, 150);
-      }, 150);
+      onDirectAction('playKnight', pendingCard, pendingTarget);
+      addLog('player1', `Jで${pendingTarget.card.rank}を略奪`);
+    } else if (['A', '2', '9', '10'].includes(pendingCard.rank)) {
+      // ワンオフ効果
+      onDirectAction('playOneOff', pendingCard, pendingTarget);
+      if (pendingCard.rank === '9' || pendingCard.rank === '10') {
+        addLog('player1', `${pendingCard.rank}で${pendingTarget.card.rank}を手札に戻した`);
+      } else {
+        addLog('player1', `${pendingCard.rank}で${pendingTarget.card.rank}を破壊`);
+      }
     }
     
     closeActionModal();
-  }, [pendingCard, pendingTarget, onCardSelect, onAction, onFieldCardSelect, addLog, closeActionModal]);
+  }, [pendingCard, pendingTarget, onDirectAction, addLog, closeActionModal]);
   
   // タッチ開始
   const handleTouchStart = useCallback((e: React.TouchEvent | React.MouseEvent, index: number) => {
