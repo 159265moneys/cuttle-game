@@ -140,13 +140,152 @@
     position: absolute;
     width: 48px;
     height: 68px;
-    background: linear-gradient(135deg, #2a1a35, #1a1025);
-    border: 2px solid #4a3055;
+    background: transparent;
+    border: 2px solid #5a4030;
     border-radius: 6px;
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.6), inset 0 0 15px rgba(0, 0, 0, 0.3);
     transform-origin: top center;
     top: 18px;
     left: 50%;
+    overflow: hidden;
+}
+
+/* カード裏面 - 羊皮紙背景 */
+.card-back-parchment {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 4px;
+    background: 
+        /* 古びた革/羊皮紙のテクスチャ感 */
+        radial-gradient(ellipse at 30% 20%, rgba(80, 50, 30, 0.4) 0%, transparent 50%),
+        radial-gradient(ellipse at 70% 80%, rgba(60, 40, 25, 0.4) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 50%, rgba(45, 35, 25, 0.2) 0%, transparent 70%),
+        /* ベース色 - 古い革のような深い茶色 */
+        linear-gradient(180deg, 
+            #3d2d20 0%,
+            #2e2218 40%,
+            #251c14 60%,
+            #1a140e 100%
+        );
+    z-index: 0;
+}
+
+/* カード裏面 - 中央メインイラスト */
+.card-back-main {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 28px;
+    height: 32px;
+    -webkit-mask-image: url(/sprite/back/backmain.png);
+    mask-image: url(/sprite/back/backmain.png);
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    /* 金色に着色 */
+    background: linear-gradient(180deg, #c9a030 0%, #8a6820 50%, #c9a030 100%);
+    z-index: 2;
+    filter: drop-shadow(0 0 3px rgba(201, 160, 48, 0.5));
+}
+
+/* カード裏面 - 四隅のスートアイコン */
+.card-back-suit {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    z-index: 1;
+    opacity: 0.8;
+}
+
+/* 左上 - 人間（赤）- 右を向く（中央向き） */
+.card-back-suit.top-left {
+    top: 4px;
+    left: 4px;
+    -webkit-mask-image: url(/sprite/suit/human.png);
+    mask-image: url(/sprite/suit/human.png);
+    background-color: #7a3030;
+    transform: scaleX(-1); /* 反転して右向きに */
+}
+
+/* 右上 - エルフ（黄）- 左を向く（中央向き） */
+.card-back-suit.top-right {
+    top: 4px;
+    right: 4px;
+    -webkit-mask-image: url(/sprite/suit/elf.png);
+    mask-image: url(/sprite/suit/elf.png);
+    background-color: #6a5a20;
+    /* 左向きのまま（中央を向く） */
+}
+
+/* 左下 - ゴブリン（緑）- 右を向く（中央向き） */
+.card-back-suit.bottom-left {
+    bottom: 4px;
+    left: 4px;
+    -webkit-mask-image: url(/sprite/suit/goblin.png);
+    mask-image: url(/sprite/suit/goblin.png);
+    background-color: #254a30;
+    transform: scaleX(-1) scaleY(-1); /* 右向き＋上下反転 */
+}
+
+/* 右下 - 悪魔（青）- 左を向く（中央向き） */
+.card-back-suit.bottom-right {
+    bottom: 4px;
+    right: 4px;
+    -webkit-mask-image: url(/sprite/suit/demon.png);
+    mask-image: url(/sprite/suit/demon.png);
+    background-color: #253a5a;
+    transform: scaleY(-1); /* 上下反転のみ */
+}
+
+/* カード裏面 - 装飾フレーム */
+.card-back-frame {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    right: 2px;
+    bottom: 2px;
+    border: 1px solid rgba(201, 160, 48, 0.3);
+    border-radius: 3px;
+    z-index: 3;
+    pointer-events: none;
+}
+
+.card-back-frame::before {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    right: 3px;
+    bottom: 3px;
+    border: 1px solid rgba(201, 160, 48, 0.15);
+    border-radius: 2px;
+}
+
+/* 中央の装飾円（メインイラスト周り） */
+.card-back-frame::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 34px;
+    height: 38px;
+    border: 1px solid rgba(201, 160, 48, 0.25);
+    border-radius: 4px;
+    background: radial-gradient(ellipse at center, rgba(201, 160, 48, 0.08) 0%, transparent 70%);
 }
 
 /* ========== 敵 効果エリア (10%) ========== */

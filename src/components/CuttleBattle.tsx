@@ -747,7 +747,22 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
                 transform: `translateX(calc(-50% + ${xOffset}px)) translateY(${yOffset}px) rotate(${angle}deg)`,
                 zIndex: i + 1,
               }}
-            />
+            >
+              {/* 羊皮紙背景 */}
+              <div className="card-back-parchment" />
+              
+              {/* 中央メインイラスト */}
+              <div className="card-back-main" />
+              
+              {/* 四隅のスートアイコン（向かい合わせ） */}
+              <div className="card-back-suit top-left" />
+              <div className="card-back-suit top-right" />
+              <div className="card-back-suit bottom-left" />
+              <div className="card-back-suit bottom-right" />
+              
+              {/* 装飾フレーム */}
+              <div className="card-back-frame" />
+            </div>
           );
         })}
       </div>
