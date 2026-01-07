@@ -10,25 +10,9 @@ import {
   discardCards
 } from './utils/cardActions';
 import { getCPUAction } from './utils/cpuAI';
-import { GameBoard } from './components/GameBoard';
 import CuttleBattle from './components/CuttleBattle';
 
 function App() {
-  // バトルデモ画面の開閉状態
-  const [showBattleDemo, setShowBattleDemo] = useState(false);
-  
-  // Pキーでバトルデモ画面の開閉をトグル
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'p' || e.key === 'P') {
-        setShowBattleDemo(prev => !prev);
-      }
-    };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
   const [gameState, setGameState] = useState<GameState>(() => {
     const state = createInitialGameState();
     state.player1.name = 'あなた';
@@ -268,63 +252,18 @@ function App() {
   }, []);
 
   return (
-    <div className="h-screen w-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-hidden">
-      {/* ヘッダー */}
-      <header className="absolute top-0 left-0 right-0 z-50 bg-black/50 backdrop-blur-sm py-2 px-3 flex justify-between items-center safe-area-top">
-        <h1 className="text-lg font-bold bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
-          ⚔️ カトル
-        </h1>
-        <div className="flex items-center gap-2">
-          {gameState.currentPlayer === 'player2' && gameState.phase !== 'gameOver' && (
-            <div className="flex items-center gap-1 text-yellow-400 text-xs">
-              <div className="animate-spin w-3 h-3 border-2 border-yellow-400 border-t-transparent rounded-full" />
-              <span>CPU...</span>
-      </div>
-          )}
-          <button
-            onClick={handleRestart}
-            className="px-2 py-1 bg-gray-700 active:bg-gray-600 rounded text-white text-xs"
-          >
-            🔄
-        </button>
-        </div>
-      </header>
-
-      {/* ゲームボード */}
-      <div className="pt-10 h-full safe-area-bottom">
-        <GameBoard
-          gameState={gameState}
-          onCardSelect={handleCardSelect}
-          onFieldCardSelect={handleFieldCardSelect}
-          onScrapSelect={handleScrapSelect}
-          onAction={handleAction}
-          onCancel={handleCancel}
-          onRestart={handleRestart}
-          isCPUTurn={gameState.currentPlayer === 'player2'}
-        />
-      </div>
-      
-      {/* カトルバトル画面（Pキーで開閉） */}
-      <CuttleBattle
-        isOpen={showBattleDemo}
-        onClose={() => setShowBattleDemo(false)}
-        gameState={gameState}
-        onCardSelect={handleCardSelect}
-        onFieldCardSelect={handleFieldCardSelect}
-        onScrapSelect={handleScrapSelect}
-        onAction={handleAction}
-        onCancel={handleCancel}
-        onRestart={handleRestart}
-        isCPUTurn={gameState.currentPlayer === 'player2'}
-      />
-      
-      {/* デバッグヒント */}
-      {!showBattleDemo && (
-        <div className="fixed bottom-2 left-2 text-xs text-gray-500 opacity-50">
-          P: 新UI
-        </div>
-      )}
-    </div>
+    <CuttleBattle
+      isOpen={true}
+      onClose={() => {}}
+      gameState={gameState}
+      onCardSelect={handleCardSelect}
+      onFieldCardSelect={handleFieldCardSelect}
+      onScrapSelect={handleScrapSelect}
+      onAction={handleAction}
+      onCancel={handleCancel}
+      onRestart={handleRestart}
+      isCPUTurn={gameState.currentPlayer === 'player2'}
+    />
   );
 }
 
