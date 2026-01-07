@@ -139,7 +139,7 @@
 .cuttle-enemy-card-back {
     position: absolute;
     width: 48px;
-    height: 68px;
+    aspect-ratio: 5 / 7;
     background: transparent;
     border: 2px solid #5a4030;
     border-radius: 6px;
@@ -597,12 +597,22 @@
     padding: 2px 4px;
 }
 
+/* フィールドカードのラッパー（カード＋下部情報ボックス） */
+.cuttle-field-card-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+    flex-shrink: 0;
+    gap: 2px;
+}
+
 .cuttle-field-card-full {
     position: relative;
     flex-shrink: 0;
-    height: 95%;
+    flex-grow: 1;
     aspect-ratio: 5 / 7;
-    max-width: 70px;
+    max-height: calc(100% - 16px); /* 情報ボックス分を引く */
     background: transparent;
     border: 2px solid rgba(80, 60, 40, 0.8);
     border-radius: 5px;
@@ -674,7 +684,7 @@
 }
 
 .card-rank.field.bottom-right {
-    bottom: 14px;  /* 情報ボックス分上にずらす */
+    bottom: 2px;
     right: 3px;
 }
 
@@ -698,20 +708,17 @@
     height: 8px;
 }
 
-/* 下部情報ボックス */
+/* 下部情報ボックス（カード外） */
 .field-card-info {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
     height: 14px;
+    width: 100%;
     background: rgba(0, 0, 0, 0.75);
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 3px;
-    z-index: 5;
-    border-top: 1px solid rgba(120, 90, 50, 0.4);
+    border-radius: 3px;
+    border: 1px solid rgba(120, 90, 50, 0.4);
 }
 
 .field-card-info-icon {
@@ -1125,7 +1132,7 @@
 .cuttle-hand-card {
     position: absolute;
     width: 64px;
-    height: 90px;
+    aspect-ratio: 5 / 7;
     background: transparent;
     border: 2px solid rgba(80, 60, 40, 0.8);
     border-radius: 8px;
@@ -1213,7 +1220,7 @@
 .cuttle-preview-card {
     position: relative;
     width: 140px;
-    height: 196px;
+    aspect-ratio: 5 / 7;
     background: transparent;
     border: 3px solid rgba(80, 60, 40, 0.8);
     border-radius: 12px;
@@ -1316,7 +1323,7 @@
     position: absolute;
     bottom: 25px;
     width: 100px;
-    height: 140px;
+    aspect-ratio: 5 / 7;
     background: transparent;
     border: 2px solid rgba(80, 60, 40, 0.8);
     border-radius: 10px;
@@ -1400,7 +1407,7 @@
 .cuttle-drag {
     position: fixed;
     width: 100px;
-    height: 140px;
+    aspect-ratio: 5 / 7;
     background: transparent;
     border: 3px solid #c9a227;
     border-radius: 12px;
