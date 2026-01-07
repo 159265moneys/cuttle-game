@@ -181,8 +181,6 @@
     transform: translate(-50%, -50%);
     width: 28px;
     height: 32px;
-    -webkit-mask-image: url(/sprite/back/backmain.png);
-    mask-image: url(/sprite/back/backmain.png);
     -webkit-mask-size: contain;
     mask-size: contain;
     -webkit-mask-repeat: no-repeat;
@@ -214,8 +212,6 @@
 .card-back-suit.top-left {
     top: 4px;
     left: 4px;
-    -webkit-mask-image: url(/sprite/suit/human.png);
-    mask-image: url(/sprite/suit/human.png);
     background-color: #7a3030;
     transform: scaleX(-1); /* 反転して右向きに */
 }
@@ -224,8 +220,6 @@
 .card-back-suit.top-right {
     top: 4px;
     right: 4px;
-    -webkit-mask-image: url(/sprite/suit/elf.png);
-    mask-image: url(/sprite/suit/elf.png);
     background-color: #6a5a20;
     /* 左向きのまま（中央を向く） */
 }
@@ -234,8 +228,6 @@
 .card-back-suit.bottom-left {
     bottom: 4px;
     left: 4px;
-    -webkit-mask-image: url(/sprite/suit/goblin.png);
-    mask-image: url(/sprite/suit/goblin.png);
     background-color: #254a30;
     transform: scaleX(-1) scaleY(-1); /* 右向き＋上下反転 */
 }
@@ -244,8 +236,6 @@
 .card-back-suit.bottom-right {
     bottom: 4px;
     right: 4px;
-    -webkit-mask-image: url(/sprite/suit/demon.png);
-    mask-image: url(/sprite/suit/demon.png);
     background-color: #253a5a;
     transform: scaleY(-1); /* 上下反転のみ */
 }

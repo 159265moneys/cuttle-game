@@ -44,15 +44,18 @@ const isFaceCard = (rank: string): boolean => {
   return ['A', 'J', 'Q', 'K'].includes(rank);
 };
 
+// ベースURL（GitHub Pages対応）
+const BASE_URL = import.meta.env.BASE_URL || '/';
+
 // スプライトパス生成
 const getSuitSpritePath = (race: string): string => {
-  return `/sprite/suit/${race.toLowerCase()}.png`;
+  return `${BASE_URL}sprite/suit/${race.toLowerCase()}.png`;
 };
 
 const getFaceSpritePath = (race: string, rank: string): string => {
   const raceCode = RACE_CODES[race] || 'h';
   const rankCode = rank.toLowerCase();
-  return `/sprite/ajqk/${raceCode}${rankCode}.png`;
+  return `${BASE_URL}sprite/ajqk/${raceCode}${rankCode}.png`;
 };
 
 // カード枚数から表示する重なり枚数を計算
@@ -752,13 +755,28 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
               <div className="card-back-parchment" />
               
               {/* 中央メインイラスト */}
-              <div className="card-back-main" />
+              <div 
+                className="card-back-main"
+                style={{ maskImage: `url(${BASE_URL}sprite/back/backmain.png)` }}
+              />
               
               {/* 四隅のスートアイコン（向かい合わせ） */}
-              <div className="card-back-suit top-left" />
-              <div className="card-back-suit top-right" />
-              <div className="card-back-suit bottom-left" />
-              <div className="card-back-suit bottom-right" />
+              <div 
+                className="card-back-suit top-left"
+                style={{ maskImage: `url(${BASE_URL}sprite/suit/human.png)` }}
+              />
+              <div 
+                className="card-back-suit top-right"
+                style={{ maskImage: `url(${BASE_URL}sprite/suit/elf.png)` }}
+              />
+              <div 
+                className="card-back-suit bottom-left"
+                style={{ maskImage: `url(${BASE_URL}sprite/suit/goblin.png)` }}
+              />
+              <div 
+                className="card-back-suit bottom-right"
+                style={{ maskImage: `url(${BASE_URL}sprite/suit/demon.png)` }}
+              />
               
               {/* 装飾フレーム */}
               <div className="card-back-frame" />
