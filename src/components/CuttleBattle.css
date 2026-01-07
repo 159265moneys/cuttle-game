@@ -59,16 +59,67 @@
     z-index: 1;
 }
 
-.cuttle-enemy-name {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: #e6a3b3;
+/* ========== プレイヤー/敵 情報行 ========== */
+.cuttle-player-info-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
-.cuttle-enemy-points {
+.cuttle-player-info-row.left-aligned {
+    justify-content: flex-start;
+}
+
+.cuttle-player-info-row.right-aligned {
+    justify-content: flex-end;
+    margin-left: auto;
+}
+
+/* 円形アイコン */
+.cuttle-player-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.cuttle-player-icon.player {
+    background: linear-gradient(135deg, #3a3020, #2a2015);
+    border: 2px solid #c9a227;
+    box-shadow: 0 0 10px rgba(201, 162, 39, 0.3);
+}
+
+.cuttle-player-icon.enemy {
+    background: linear-gradient(135deg, #3a2030, #2a1520);
+    border: 2px solid #8b2942;
+    box-shadow: 0 0 10px rgba(139, 41, 66, 0.3);
+}
+
+/* プレイヤー名 */
+.cuttle-player-name {
     font-size: 0.85rem;
+    font-weight: 600;
+    color: #e8e0d4;
+    font-family: 'Cinzel', serif;
+}
+
+/* 点数表示 */
+.cuttle-points-display {
+    font-size: 1.3rem;
     font-weight: 700;
     color: #c9a227;
+    font-family: 'Cinzel', serif;
+    text-shadow: 0 0 10px rgba(201, 162, 39, 0.5);
+}
+
+.cuttle-points-display .points-unit {
+    font-size: 0.7rem;
+    color: rgba(201, 162, 39, 0.7);
+    margin-left: 2px;
 }
 
 /* ========== 敵手札 (10%) - 扇状表示 ========== */
@@ -79,7 +130,7 @@
     display: flex;
     justify-content: center;
     align-items: flex-start;
-    padding-top: 8px;
+    padding-top: 16px;
     background: rgba(0, 0, 0, 0.3);
     z-index: 2;
     overflow: visible;
@@ -94,14 +145,14 @@
     border-radius: 6px;
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.6);
     transform-origin: top center;
-    top: 8px;
+    top: 18px;
     left: 50%;
 }
 
-/* ========== 敵 効果エリア (8%) ========== */
+/* ========== 敵 効果エリア (10%) ========== */
 .cuttle-enemy-effects {
-    height: 8%;
-    min-height: 55px;
+    height: 10%;
+    min-height: 60px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -120,10 +171,10 @@
     color: rgba(232, 224, 212, 0.4);
 }
 
-/* ========== 敵 点数エリア (15%) ========== */
+/* ========== 敵 点数エリア (13%) ========== */
 .cuttle-enemy-points-area {
-    height: 15%;
-    min-height: 90px;
+    height: 13%;
+    min-height: 80px;
     position: relative;
     display: flex;
     justify-content: center;
@@ -151,9 +202,9 @@
 
 /* 山札カード */
 .cuttle-deck-card {
-    width: 50px;
-    height: 100%;
-    max-height: 60px;
+    width: auto;
+    aspect-ratio: 5 / 7;
+    height: 95%;
     background: linear-gradient(135deg, #2a2035, #1a1525);
     border: 2px solid #c9a227;
     border-radius: 6px;
@@ -186,9 +237,9 @@
 
 /* 墓地カード */
 .cuttle-scrap-card {
-    width: 50px;
-    height: 100%;
-    max-height: 60px;
+    width: auto;
+    aspect-ratio: 5 / 7;
+    height: 95%;
     background: linear-gradient(135deg, #2a1a1a, #1a1010);
     border: 2px dashed #5a3a3a;
     border-radius: 6px;
@@ -219,7 +270,6 @@
 /* 中央メッセージボックス */
 .cuttle-action-log {
     flex: 1;
-    max-width: 240px;
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -228,7 +278,7 @@
     padding: 4px 10px;
     background: rgba(0, 0, 0, 0.6);
     border-radius: 8px;
-    margin: 0 10px;
+    margin: 0 8px;
     border: 1px solid rgba(201, 162, 39, 0.2);
 }
 

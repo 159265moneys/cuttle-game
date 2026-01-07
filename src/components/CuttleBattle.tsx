@@ -471,10 +471,13 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   
   return (
     <div ref={screenRef} className={`cuttle-battle ${isOpen ? 'active' : ''}`}>
-      {/* 敵情報バー */}
+      {/* 敵情報バー - 右寄せ: アイコン | 名前 | 点数 */}
       <div className="cuttle-enemy-info">
-        <span className="cuttle-enemy-name">👹 {enemy.name}</span>
-        <span className="cuttle-enemy-points">点数: {enemyPoints}</span>
+        <div className="cuttle-player-info-row right-aligned">
+          <div className="cuttle-player-icon enemy">👹</div>
+          <span className="cuttle-player-name">{enemy.name}</span>
+          <span className="cuttle-points-display">{enemyPoints}<span className="points-unit">pt/21</span></span>
+        </div>
       </div>
       
       {/* 敵手札（扇状 - 逆向き：敵なので上に開く） */}
@@ -575,10 +578,11 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
       
       {/* ステータスバー */}
       <div className="cuttle-status-bar">
-        <div className="cuttle-player-score">
-          <span className="cuttle-score-label">点数</span>
-          <span className="cuttle-score-value">{playerPoints}</span>
-          <span className="cuttle-score-target">/ 21</span>
+        {/* 自分情報 - 左寄せ: アイコン | 名前 | 点数 */}
+        <div className="cuttle-player-info-row left-aligned">
+          <div className="cuttle-player-icon player">⚔️</div>
+          <span className="cuttle-player-name">{player.name}</span>
+          <span className="cuttle-points-display">{playerPoints}<span className="points-unit">pt/21</span></span>
         </div>
         <div className="cuttle-actions">
           <button
