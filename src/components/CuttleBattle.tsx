@@ -31,11 +31,15 @@ const RACE_NAMES: Record<string, string> = {
   Demon: 'デーモン',
 };
 
-// 種族コード（スプライト用）
+// 種族コード（スプライト用）- 小文字で統一
 const RACE_CODES: Record<string, string> = {
+  elf: 'e',
   Elf: 'e',
+  goblin: 'g',
   Goblin: 'g',
+  human: 'h',
   Human: 'h',
+  demon: 'd',
   Demon: 'd',
 };
 
@@ -138,10 +142,24 @@ const getSuitSpritePath = (race: string): string => {
 };
 
 const getFaceSpritePath = (race: string, rank: string): string => {
-  const raceCode = RACE_CODES[race] || 'h';
+  const raceCode = RACE_CODES[race] || RACE_CODES[race.toLowerCase()] || 'h';
   const rankCode = rank.toLowerCase();
   return `${BASE_URL}sprite/ajqk/${raceCode}${rankCode}.png`;
 };
+
+// CSS mask用のスタイルオブジェクト生成（webkit対応）
+const getMaskStyle = (url: string): React.CSSProperties => ({
+  WebkitMaskImage: `url(${url})`,
+  maskImage: `url(${url})`,
+});
+
+// スートアイコン用のmaskスタイル
+const getSuitMaskStyle = (race: string): React.CSSProperties => 
+  getMaskStyle(getSuitSpritePath(race));
+
+// 絵札イラスト用のmaskスタイル
+const getFaceMaskStyle = (race: string, rank: string): React.CSSProperties => 
+  getMaskStyle(getFaceSpritePath(race, rank));
 
 // カード枚数から表示する重なり枚数を計算
 function getStackCount(count: number): number {
@@ -566,20 +584,20 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
         {isFaceCard(card.rank) && (
           <div 
             className="card-face-art"
-            style={{ maskImage: `url(${getFaceSpritePath(card.race, card.rank)})` }}
+            style={getFaceMaskStyle(card.race, card.rank)}
           />
         )}
         
         {/* スートアイコン - 左上（コーナー） */}
         <div 
           className="card-suit-icon corner top-left"
-          style={{ maskImage: `url(${getSuitSpritePath(card.race)})` }}
+          style={getSuitMaskStyle(card.race)}
         />
         
         {/* スートアイコン - 右下（コーナー、反転） */}
         <div 
           className="card-suit-icon corner bottom-right"
-          style={{ maskImage: `url(${getSuitSpritePath(card.race)})` }}
+          style={getSuitMaskStyle(card.race)}
         />
         
         {/* ランク表示 - 左上 */}
@@ -598,7 +616,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
                 style={{
                   left: `${pip.x}%`,
                   top: `${pip.y}%`,
-                  maskImage: `url(${getSuitSpritePath(card.race)})`,
+                  ...getSuitMaskStyle(card.race),
                 }}
               />
             ))}
@@ -654,16 +672,16 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
         {isFaceCard(card.rank) && (
           <div 
             className="card-face-art"
-            style={{ maskImage: `url(${getFaceSpritePath(card.race, card.rank)})` }}
+            style={getFaceMaskStyle(card.race, card.rank)}
           />
         )}
         <div 
           className="card-suit-icon corner top-left"
-          style={{ maskImage: `url(${getSuitSpritePath(card.race)})` }}
+          style={getSuitMaskStyle(card.race)}
         />
         <div 
           className="card-suit-icon corner bottom-right"
-          style={{ maskImage: `url(${getSuitSpritePath(card.race)})` }}
+          style={getSuitMaskStyle(card.race)}
         />
         <div className="card-rank top-left">{card.rank}</div>
         <div className="card-rank bottom-right">{card.rank}</div>
@@ -676,7 +694,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
                 style={{
                   left: `${pip.x}%`,
                   top: `${pip.y}%`,
-                  maskImage: `url(${getSuitSpritePath(card.race)})`,
+                  ...getSuitMaskStyle(card.race),
                 }}
               />
             ))}
@@ -701,16 +719,16 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
           {isFaceCard(card.rank) && (
             <div 
               className="card-face-art large"
-              style={{ maskImage: `url(${getFaceSpritePath(card.race, card.rank)})` }}
+              style={getFaceMaskStyle(card.race, card.rank)}
             />
           )}
           <div 
             className="card-suit-icon corner top-left large"
-            style={{ maskImage: `url(${getSuitSpritePath(card.race)})` }}
+            style={getSuitMaskStyle(card.race)}
           />
           <div 
             className="card-suit-icon corner bottom-right large"
-            style={{ maskImage: `url(${getSuitSpritePath(card.race)})` }}
+            style={getSuitMaskStyle(card.race)}
           />
           <div className="card-rank top-left">{card.rank}</div>
           <div className="card-rank bottom-right">{card.rank}</div>
@@ -723,7 +741,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
                   style={{
                     left: `${pip.x}%`,
                     top: `${pip.y}%`,
-                    maskImage: `url(${getSuitSpritePath(card.race)})`,
+                    ...getSuitMaskStyle(card.race),
                   }}
                 />
               ))}
@@ -777,18 +795,18 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
               {isFaceCard(fc.card.rank) && (
                 <div 
                   className="card-face-art small"
-                  style={{ maskImage: `url(${getFaceSpritePath(fc.card.race, fc.card.rank)})` }}
+                  style={getFaceMaskStyle(fc.card.race, fc.card.rank)}
                 />
               )}
               <div 
                 className="card-suit-icon top-left small"
-                style={{ maskImage: `url(${getSuitSpritePath(fc.card.race)})` }}
+                style={getSuitMaskStyle(fc.card.race)}
               />
               <div className="card-rank top-left small">{fc.card.rank}</div>
               {!isFaceCard(fc.card.rank) && (
                 <div 
                   className="card-suit-icon center small"
-                  style={{ maskImage: `url(${getSuitSpritePath(fc.card.race)})` }}
+                  style={getSuitMaskStyle(fc.card.race)}
                 />
               )}
               {fc.card.value > 0 && <div className="card-value">{fc.card.value}pt</div>}
@@ -879,25 +897,25 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
               {/* 中央メインイラスト */}
               <div 
                 className="card-back-main"
-                style={{ maskImage: `url(${BASE_URL}sprite/back/backmain.png)` }}
+                style={getMaskStyle(`${BASE_URL}sprite/back/backmain.png`)}
               />
               
               {/* 四隅のスートアイコン（向かい合わせ） */}
               <div 
                 className="card-back-suit top-left"
-                style={{ maskImage: `url(${BASE_URL}sprite/suit/human.png)` }}
+                style={getMaskStyle(`${BASE_URL}sprite/suit/human.png`)}
               />
               <div 
                 className="card-back-suit top-right"
-                style={{ maskImage: `url(${BASE_URL}sprite/suit/elf.png)` }}
+                style={getMaskStyle(`${BASE_URL}sprite/suit/elf.png`)}
               />
               <div 
                 className="card-back-suit bottom-left"
-                style={{ maskImage: `url(${BASE_URL}sprite/suit/goblin.png)` }}
+                style={getMaskStyle(`${BASE_URL}sprite/suit/goblin.png`)}
               />
               <div 
                 className="card-back-suit bottom-right"
-                style={{ maskImage: `url(${BASE_URL}sprite/suit/demon.png)` }}
+                style={getMaskStyle(`${BASE_URL}sprite/suit/demon.png`)}
               />
               
               {/* 装飾フレーム */}
@@ -1082,16 +1100,16 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
             {isFaceCard(dragCard.rank) && (
               <div 
                 className="card-face-art"
-                style={{ maskImage: `url(${getFaceSpritePath(dragCard.race, dragCard.rank)})` }}
+                style={getFaceMaskStyle(dragCard.race, dragCard.rank)}
               />
             )}
             <div 
               className="card-suit-icon corner top-left"
-              style={{ maskImage: `url(${getSuitSpritePath(dragCard.race)})` }}
+              style={getSuitMaskStyle(dragCard.race)}
             />
             <div 
               className="card-suit-icon corner bottom-right"
-              style={{ maskImage: `url(${getSuitSpritePath(dragCard.race)})` }}
+              style={getSuitMaskStyle(dragCard.race)}
             />
             <div className="card-rank top-left">{dragCard.rank}</div>
             <div className="card-rank bottom-right">{dragCard.rank}</div>
@@ -1104,7 +1122,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
                     style={{
                       left: `${pip.x}%`,
                       top: `${pip.y}%`,
-                      maskImage: `url(${getSuitSpritePath(dragCard.race)})`,
+                      ...getSuitMaskStyle(dragCard.race),
                     }}
                   />
                 ))}
