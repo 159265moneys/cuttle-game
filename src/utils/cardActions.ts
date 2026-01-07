@@ -1,11 +1,11 @@
 import type { 
   GameState, 
   Card, 
-  FieldCard
+  FieldCard,
+  Player
 } from '../types/game';
 import { 
   getOpponent, 
-  sendToScrap, 
   endTurn, 
   playCardToField,
   hasQueen,
@@ -13,13 +13,41 @@ import {
   checkWinCondition
 } from './gameLogic';
 
-// ワンオフ効果を実行
+// 深いコピーでプレイヤーを複製
+function clonePlayer(player: Player): Player {
+  return {
+    ...player,
+    hand: [...player.hand],
+    field: player.field.map(fc => ({
+      ...fc,
+      card: { ...fc.card },
+      attachedKnights: [...fc.attachedKnights],
+    })),
+  };
+}
+
+// 深いコピーでゲーム状態を複製
+function cloneGameState(state: GameState): GameState {
+  return {
+    ...state,
+    deck: [...state.deck],
+    scrapPile: [...state.scrapPile],
+    player1: clonePlayer(state.player1),
+    player2: clonePlayer(state.player2),
+    opponentHandRevealed: { ...state.opponentHandRevealed },
+  };
+}
+
+// ============================================
+// ワンオフ効果
+// ============================================
+
 export function executeOneOff(
   state: GameState,
   card: Card,
   target?: FieldCard | Card
 ): GameState {
-  let newState = { ...state };
+  let newState = cloneGameState(state);
   const playerId = state.currentPlayer;
   const opponentId = getOpponent(playerId);
   const player = newState[playerId];
@@ -35,7 +63,7 @@ export function executeOneOff(
         const targetField = target as FieldCard;
         if (targetField.card.value > 0 && !hasQueen(opponent)) {
           opponent.field = opponent.field.filter(fc => fc.card.id !== targetField.card.id);
-          newState = sendToScrap(newState, targetField.card);
+          newState.scrapPile.push({ ...targetField.card });
           newState.message = `${targetField.card.rank}を破壊！`;
         }
       }
@@ -43,15 +71,19 @@ export function executeOneOff(
     }
 
     case '2': {
-      // 相手の永続カード1枚を破壊
+      // 相手の永続カード1枚を破壊（J, Q, K, 8永続）
       if (target && 'card' in target) {
         const targetField = target as FieldCard;
-        if (targetField.card.rank === 'J' || targetField.card.rank === 'Q' || 
-            targetField.card.rank === 'K' || (targetField.card.rank === '8' && targetField.card.value === 0)) {
+        const isPermanent = 
+          targetField.card.rank === 'J' || 
+          targetField.card.rank === 'Q' || 
+          targetField.card.rank === 'K' || 
+          (targetField.card.rank === '8' && targetField.card.value === 0);
+        
+        if (isPermanent) {
           opponent.field = opponent.field.filter(fc => fc.card.id !== targetField.card.id);
-          newState = sendToScrap(newState, targetField.card);
+          newState.scrapPile.push({ ...targetField.card });
           
-          // 王を破壊した場合はカウントを減らす
           if (targetField.card.rank === 'K') {
             opponent.kings--;
           }
@@ -67,19 +99,18 @@ export function executeOneOff(
       if (target && !('card' in target)) {
         const targetCard = target as Card;
         newState.scrapPile = newState.scrapPile.filter(c => c.id !== targetCard.id);
-        player.hand = [...player.hand, targetCard];
+        player.hand.push({ ...targetCard });
         newState.message = `${targetCard.rank}を回収！`;
       }
       break;
     }
 
     case '4': {
-      // 相手は手札を2枚捨てる
-      // これは別フェーズで処理
+      // 相手は手札を2枚捨てる（別フェーズで処理）
       newState.phase = 'opponentDiscard';
       newState.message = `${opponentId === 'player1' ? 'プレイヤー1' : 'プレイヤー2'}は手札を2枚捨ててください`;
-      newState = sendToScrap(newState, card);
-      return newState; // ターン終了しない
+      newState.scrapPile.push({ ...card });
+      return newState;
     }
 
     case '5': {
@@ -87,7 +118,7 @@ export function executeOneOff(
       const drawCount = Math.min(2, newState.deck.length);
       for (let i = 0; i < drawCount; i++) {
         const drawnCard = newState.deck.shift()!;
-        player.hand = [...player.hand, drawnCard];
+        player.hand.push(drawnCard);
       }
       newState.message = `${drawCount}枚ドロー！`;
       break;
@@ -95,33 +126,35 @@ export function executeOneOff(
 
     case '6': {
       // 全ての永続カードを破壊
-      const destroyPermanent = (fc: FieldCard) => {
-        return fc.card.rank !== 'J' && fc.card.rank !== 'Q' && 
-               fc.card.rank !== 'K' && !(fc.card.rank === '8' && fc.card.value === 0);
-      };
+      const isPermanent = (fc: FieldCard) => 
+        fc.card.rank === 'J' || 
+        fc.card.rank === 'Q' || 
+        fc.card.rank === 'K' || 
+        (fc.card.rank === '8' && fc.card.value === 0);
       
       // 両プレイヤーの永続カードを捨て札へ
       for (const fc of player.field) {
-        if (!destroyPermanent(fc)) {
-          newState = sendToScrap(newState, fc.card);
+        if (isPermanent(fc)) {
+          newState.scrapPile.push({ ...fc.card });
           if (fc.card.rank === 'K') player.kings--;
         }
       }
       for (const fc of opponent.field) {
-        if (!destroyPermanent(fc)) {
-          newState = sendToScrap(newState, fc.card);
+        if (isPermanent(fc)) {
+          newState.scrapPile.push({ ...fc.card });
           if (fc.card.rank === 'K') opponent.kings--;
         }
       }
       
-      player.field = player.field.filter(destroyPermanent);
-      opponent.field = opponent.field.filter(destroyPermanent);
+      // 永続カードを除去
+      player.field = player.field.filter(fc => !isPermanent(fc));
+      opponent.field = opponent.field.filter(fc => !isPermanent(fc));
       
       // 騎士を破壊した場合、点数カードは元の持ち主に戻る
       for (const fc of [...player.field, ...opponent.field]) {
         if (fc.attachedKnights.length > 0) {
           for (const knight of fc.attachedKnights) {
-            newState = sendToScrap(newState, knight);
+            newState.scrapPile.push({ ...knight });
           }
           fc.attachedKnights = [];
           fc.controller = fc.owner;
@@ -133,12 +166,12 @@ export function executeOneOff(
     }
 
     case '7': {
-      // 山札トップを見てプレイ
+      // 山札トップを見てプレイ（別フェーズで処理）
       if (newState.deck.length > 0) {
         newState.phase = 'sevenChoice';
         newState.message = '山札トップをプレイするか、手札からプレイしてください';
-        newState = sendToScrap(newState, card);
-        return newState; // ターン終了しない
+        newState.scrapPile.push({ ...card });
+        return newState;
       }
       break;
     }
@@ -155,16 +188,14 @@ export function executeOneOff(
         }
         
         opponent.field = opponent.field.filter(fc => fc.card.id !== targetField.card.id);
-        opponent.hand = [...opponent.hand, targetField.card];
+        opponent.hand.push({ ...targetField.card });
         
-        // 王の場合はカウントを減らす
         if (targetField.card.rank === 'K') {
           opponent.kings--;
         }
         
-        // 騎士を戻した場合、点数カードは元の持ち主の場に戻る
+        // 騎士を戻した場合、付いていたカードの支配者を戻す
         if (targetField.card.rank === 'J') {
-          // 騎士が付いていたカードを見つけて支配者を戻す
           for (const fc of opponent.field) {
             fc.attachedKnights = fc.attachedKnights.filter(k => k.id !== targetField.card.id);
             if (fc.attachedKnights.length === 0) {
@@ -185,7 +216,7 @@ export function executeOneOff(
         
         if (targetField.card.value > 0 && !hasQueen(opponent)) {
           opponent.field = opponent.field.filter(fc => fc.card.id !== targetField.card.id);
-          opponent.hand = [...opponent.hand, targetField.card];
+          opponent.hand.push({ ...targetField.card });
           newState.message = `${targetField.card.rank}を手札に戻した！`;
         }
       }
@@ -193,7 +224,7 @@ export function executeOneOff(
     }
   }
 
-  newState = sendToScrap(newState, card);
+  newState.scrapPile.push({ ...card });
   newState.consecutivePasses = 0;
 
   // 勝利条件チェック
@@ -208,13 +239,16 @@ export function executeOneOff(
   return endTurn(newState);
 }
 
-// 騎士（J）を使用
+// ============================================
+// 騎士（J）
+// ============================================
+
 export function playKnight(
   state: GameState,
   knightCard: Card,
   targetField: FieldCard
 ): GameState {
-  let newState = { ...state };
+  const newState = cloneGameState(state);
   const playerId = state.currentPlayer;
   const opponentId = getOpponent(playerId);
   const player = newState[playerId];
@@ -228,10 +262,10 @@ export function playKnight(
   // 手札から削除
   player.hand = player.hand.filter(c => c.id !== knightCard.id);
 
-  // 対象のカードに騎士を付ける
+  // 対象のカードに騎士を付けて支配者を変更
   const targetIndex = opponent.field.findIndex(fc => fc.card.id === targetField.card.id);
   if (targetIndex !== -1) {
-    opponent.field[targetIndex].attachedKnights.push(knightCard);
+    opponent.field[targetIndex].attachedKnights.push({ ...knightCard });
     opponent.field[targetIndex].controller = playerId;
   }
 
@@ -250,13 +284,16 @@ export function playKnight(
   return endTurn(newState);
 }
 
-// スカトルを実行
+// ============================================
+// スカトル
+// ============================================
+
 export function executeScuttle(
   state: GameState,
   attackerCard: Card,
   defenderField: FieldCard
 ): GameState {
-  let newState = { ...state };
+  const newState = cloneGameState(state);
   const playerId = state.currentPlayer;
   const opponentId = getOpponent(playerId);
   const player = newState[playerId];
@@ -273,24 +310,24 @@ export function executeScuttle(
 
   switch (scuttleResult.result) {
     case 'success':
-      // 相手のカードのみ破壊
+      // 相手のカードを破壊、自分のも捨て札へ
       opponent.field = opponent.field.filter(fc => fc.card.id !== defenderField.card.id);
-      newState = sendToScrap(newState, defenderField.card);
-      newState = sendToScrap(newState, attackerCard);
+      newState.scrapPile.push({ ...defenderField.card });
+      newState.scrapPile.push({ ...attackerCard });
       newState.message = 'スカトル成功！';
       break;
     
     case 'fail':
       // 自分のカードのみ捨て札
-      newState = sendToScrap(newState, attackerCard);
+      newState.scrapPile.push({ ...attackerCard });
       newState.message = 'スカトル失敗...（種族相性で敗北）';
       break;
     
     case 'mutual':
       // 両方捨て札
       opponent.field = opponent.field.filter(fc => fc.card.id !== defenderField.card.id);
-      newState = sendToScrap(newState, defenderField.card);
-      newState = sendToScrap(newState, attackerCard);
+      newState.scrapPile.push({ ...defenderField.card });
+      newState.scrapPile.push({ ...attackerCard });
       newState.message = '相打ち！';
       break;
   }
@@ -300,7 +337,10 @@ export function executeScuttle(
   return endTurn(newState);
 }
 
+// ============================================
 // 点数カードとして配置
+// ============================================
+
 export function playAsPoint(state: GameState, card: Card): GameState {
   let newState = playCardToField(state, state.currentPlayer, card, false);
   newState.message = `${card.rank}を配置！`;
@@ -318,7 +358,10 @@ export function playAsPoint(state: GameState, card: Card): GameState {
   return endTurn(newState);
 }
 
+// ============================================
 // 永続効果として配置（Q, K, 8）
+// ============================================
+
 export function playAsPermanent(state: GameState, card: Card): GameState {
   let newState = playCardToField(state, state.currentPlayer, card, true);
   
@@ -347,18 +390,20 @@ export function playAsPermanent(state: GameState, card: Card): GameState {
   return endTurn(newState);
 }
 
+// ============================================
 // 4の効果で相手が手札を捨てる
+// ============================================
+
 export function discardCards(state: GameState, cards: Card[]): GameState {
-  let newState = { ...state };
+  const newState = cloneGameState(state);
   const opponentId = getOpponent(state.currentPlayer);
   const opponent = newState[opponentId];
 
   for (const card of cards) {
     opponent.hand = opponent.hand.filter(c => c.id !== card.id);
-    newState = sendToScrap(newState, card);
+    newState.scrapPile.push({ ...card });
   }
 
   newState.message = `${cards.length}枚捨てた`;
   return endTurn(newState);
 }
-

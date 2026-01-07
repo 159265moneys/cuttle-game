@@ -11,8 +11,24 @@ import {
 } from './utils/cardActions';
 import { getCPUAction } from './utils/cpuAI';
 import { GameBoard } from './components/GameBoard';
+import CuttleBattle from './components/CuttleBattle';
 
 function App() {
+  // バトルデモ画面の開閉状態
+  const [showBattleDemo, setShowBattleDemo] = useState(false);
+  
+  // Pキーでバトルデモ画面の開閉をトグル
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'p' || e.key === 'P') {
+        setShowBattleDemo(prev => !prev);
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const [gameState, setGameState] = useState<GameState>(() => {
     const state = createInitialGameState();
     state.player1.name = 'あなた';
@@ -263,14 +279,14 @@ function App() {
             <div className="flex items-center gap-1 text-yellow-400 text-xs">
               <div className="animate-spin w-3 h-3 border-2 border-yellow-400 border-t-transparent rounded-full" />
               <span>CPU...</span>
-            </div>
+      </div>
           )}
           <button
             onClick={handleRestart}
             className="px-2 py-1 bg-gray-700 active:bg-gray-600 rounded text-white text-xs"
           >
             🔄
-          </button>
+        </button>
         </div>
       </header>
 
@@ -287,6 +303,27 @@ function App() {
           isCPUTurn={gameState.currentPlayer === 'player2'}
         />
       </div>
+      
+      {/* カトルバトル画面（Pキーで開閉） */}
+      <CuttleBattle
+        isOpen={showBattleDemo}
+        onClose={() => setShowBattleDemo(false)}
+        gameState={gameState}
+        onCardSelect={handleCardSelect}
+        onFieldCardSelect={handleFieldCardSelect}
+        onScrapSelect={handleScrapSelect}
+        onAction={handleAction}
+        onCancel={handleCancel}
+        onRestart={handleRestart}
+        isCPUTurn={gameState.currentPlayer === 'player2'}
+      />
+      
+      {/* デバッグヒント */}
+      {!showBattleDemo && (
+        <div className="fixed bottom-2 left-2 text-xs text-gray-500 opacity-50">
+          P: 新UI
+        </div>
+      )}
     </div>
   );
 }

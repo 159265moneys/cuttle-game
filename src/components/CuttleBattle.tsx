@@ -1,0 +1,688 @@
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import type { GameState, Card, FieldCard, ActionType } from '../types/game';
+import { getCardEffect } from '../utils/gameLogic';
+import './CuttleBattle.css';
+
+// ========================================
+// カトル バトル画面 - 化学式TCG風レイアウト
+// ========================================
+
+interface CuttleBattleProps {
+  isOpen: boolean;
+  onClose: () => void;
+  gameState: GameState;
+  onCardSelect: (card: Card) => void;
+  onFieldCardSelect: (fieldCard: FieldCard) => void;
+  onScrapSelect: (card: Card) => void;
+  onAction: (action: ActionType) => void;
+  onCancel: () => void;
+  onRestart: () => void;
+  isCPUTurn: boolean;
+}
+
+type Mode = 'default' | 'browsing' | 'dragging';
+
+// 種族名を日本語に
+const RACE_NAMES: Record<string, string> = {
+  Elf: 'エルフ',
+  Goblin: 'ゴブリン',
+  Human: 'ニンゲン',
+  Demon: 'デーモン',
+};
+
+// アクションログメッセージを生成
+function getActionLogMessage(state: GameState): string {
+  const { phase, message, selectedCard, selectedAction } = state;
+  
+  if (phase === 'gameOver') {
+    return 'ゲーム終了';
+  }
+  
+  if (phase === 'selectTarget') {
+    if (selectedAction === 'scuttle') return 'スカトル対象を選択中...';
+    if (selectedCard?.rank === '3') return '墓地から回収するカードを選択...';
+    if (selectedCard?.rank === 'J') return '略奪する点数カードを選択...';
+    return 'ターゲットを選択中...';
+  }
+  
+  if (phase === 'opponentDiscard') {
+    return '手札を捨てています...';
+  }
+  
+  // デフォルトメッセージ
+  if (message) {
+    // 「〇〇のターン」を変換
+    if (message.includes('ターン')) {
+      return 'ターン開始';
+    }
+    return message;
+  }
+  
+  return 'アクションを選択';
+}
+
+const CuttleBattle: React.FC<CuttleBattleProps> = ({
+  isOpen,
+  onClose,
+  gameState,
+  onFieldCardSelect,
+  onScrapSelect,
+  onAction,
+  onRestart,
+  isCPUTurn,
+}) => {
+  // UIモード
+  const [mode, setMode] = useState<Mode>('default');
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [touchStart, setTouchStart] = useState({ x: 0, y: 0 });
+  const [touchCurrent, setTouchCurrent] = useState({ x: 0, y: 0 });
+  const [dropTarget, setDropTarget] = useState<string | null>(null);
+  const [showScrapModal, setShowScrapModal] = useState(false);
+  
+  // refs
+  const screenRef = useRef<HTMLDivElement>(null);
+  const playerPointsRef = useRef<HTMLDivElement>(null);
+  const playerEffectsRef = useRef<HTMLDivElement>(null);
+  const enemyPointsRef = useRef<HTMLDivElement>(null);
+  
+  const player = gameState.player1;
+  const enemy = gameState.player2;
+  
+  // 点数計算
+  const calculatePoints = (field: FieldCard[]) => {
+    return field
+      .filter(fc => fc.card.value > 0)
+      .reduce((sum, fc) => sum + fc.card.value, 0);
+  };
+  
+  const playerPoints = calculatePoints(player.field);
+  const enemyPoints = calculatePoints(enemy.field);
+  
+  // 永続効果カード（8, J, Q, K）
+  const isPermanentEffect = (card: Card) => {
+    return ['8', 'J', 'Q', 'K'].includes(card.rank);
+  };
+  
+  // 点数カード
+  const isPointCard = (fc: FieldCard) => fc.card.value > 0;
+  
+  // フィールドを分類
+  const playerPointCards = player.field.filter(isPointCard);
+  const playerEffectCards = player.field.filter(fc => !isPointCard(fc) || isPermanentEffect(fc.card));
+  const enemyPointCards = enemy.field.filter(isPointCard);
+  const enemyEffectCards = enemy.field.filter(fc => !isPointCard(fc) || isPermanentEffect(fc.card));
+  
+  // 閲覧モード終了
+  const hideBrowsing = useCallback(() => {
+    setMode('default');
+    setSelectedIndex(-1);
+    setDropTarget(null);
+  }, []);
+  
+  // タッチ開始
+  const handleTouchStart = useCallback((e: React.TouchEvent | React.MouseEvent, index: number) => {
+    if (isCPUTurn || gameState.phase === 'gameOver') return;
+    
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const touch = 'touches' in e ? e.touches[0] : e;
+    const startPos = { x: touch.clientX, y: touch.clientY };
+    
+    setTouchStart(startPos);
+    setTouchCurrent(startPos);
+    setSelectedIndex(index);
+    setMode('browsing');
+  }, [isCPUTurn, gameState.phase]);
+  
+  // タッチ移動
+  const handleTouchMove = useCallback((e: TouchEvent | MouseEvent) => {
+    if (mode === 'default') return;
+    
+    const touch = 'touches' in e ? e.touches[0] : e;
+    const current = { x: touch.clientX, y: touch.clientY };
+    setTouchCurrent(current);
+    
+    if (mode === 'browsing') {
+      // 上に50px以上 → ドラッグモード
+      if (touchStart.y - current.y > 50) {
+        setMode('dragging');
+        return;
+      }
+      
+      // 横移動 → カード選択切り替え
+      const browseCards = document.querySelectorAll('.cuttle-browse-card');
+      browseCards.forEach((card) => {
+        const rect = card.getBoundingClientRect();
+        if (current.x >= rect.left && current.x <= rect.right) {
+          const newIndex = parseInt(card.getAttribute('data-index') || '-1');
+          if (newIndex !== selectedIndex && newIndex >= 0) {
+            setSelectedIndex(newIndex);
+          }
+        }
+      });
+    } else if (mode === 'dragging') {
+      // ドロップターゲット判定
+      let newTarget: string | null = null;
+      
+      // 自分の点数エリア
+      if (playerPointsRef.current) {
+        const rect = playerPointsRef.current.getBoundingClientRect();
+        if (current.x >= rect.left && current.x <= rect.right &&
+            current.y >= rect.top && current.y <= rect.bottom) {
+          newTarget = 'playerPoints';
+        }
+      }
+      
+      // 自分の効果エリア
+      if (playerEffectsRef.current) {
+        const rect = playerEffectsRef.current.getBoundingClientRect();
+        if (current.x >= rect.left && current.x <= rect.right &&
+            current.y >= rect.top && current.y <= rect.bottom) {
+          newTarget = 'playerEffects';
+        }
+      }
+      
+      // 敵の点数エリア（スカトル/Jターゲット）
+      if (enemyPointsRef.current) {
+        const rect = enemyPointsRef.current.getBoundingClientRect();
+        if (current.x >= rect.left && current.x <= rect.right &&
+            current.y >= rect.top && current.y <= rect.bottom) {
+          newTarget = 'enemyPoints';
+        }
+      }
+      
+      // 敵のカード個別判定
+      const enemyCards = document.querySelectorAll('.cuttle-enemy-points-area .cuttle-field-card');
+      enemyCards.forEach((card, i) => {
+        const rect = card.getBoundingClientRect();
+        if (current.x >= rect.left && current.x <= rect.right &&
+            current.y >= rect.top && current.y <= rect.bottom) {
+          newTarget = `enemyCard:${i}`;
+        }
+      });
+      
+      setDropTarget(newTarget);
+    }
+  }, [mode, touchStart, selectedIndex]);
+  
+  // タッチ終了
+  const handleTouchEnd = useCallback(() => {
+    if (mode === 'browsing') {
+      hideBrowsing();
+    } else if (mode === 'dragging') {
+      // ドロップ処理
+      const card = player.hand[selectedIndex];
+      
+      if (card && dropTarget) {
+        if (dropTarget === 'playerPoints') {
+          // 点数として出す
+          if (card.value > 0) {
+            onAction('playPoint');
+          }
+        } else if (dropTarget === 'playerEffects') {
+          // 効果として出す
+          if (isPermanentEffect(card)) {
+            onAction('playPermanent');
+          } else {
+            onAction('playOneOff');
+          }
+        } else if (dropTarget.startsWith('enemyCard:')) {
+          // 敵カードへのターゲット効果
+          const targetIndex = parseInt(dropTarget.split(':')[1]);
+          const targetFC = enemyPointCards[targetIndex];
+          
+          if (targetFC) {
+            // J → 略奪
+            if (card.rank === 'J') {
+              onFieldCardSelect(targetFC);
+            }
+            // スカトル可能チェック
+            else if (card.value > 0 && card.value >= targetFC.card.value) {
+              onFieldCardSelect(targetFC);
+            }
+            // A, 2 → 永続破壊
+            else if (['A', '2'].includes(card.rank)) {
+              onFieldCardSelect(targetFC);
+            }
+          }
+        }
+      }
+      
+      hideBrowsing();
+    }
+    
+    setMode('default');
+    setSelectedIndex(-1);
+    setDropTarget(null);
+  }, [mode, selectedIndex, dropTarget, player.hand, enemyPointCards, onAction, onFieldCardSelect, hideBrowsing]);
+  
+  // グローバルイベント
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const handleMove = (e: TouchEvent | MouseEvent) => {
+      if (mode !== 'default') {
+        e.preventDefault();
+        handleTouchMove(e);
+      }
+    };
+    
+    const handleEnd = () => {
+      if (mode !== 'default') {
+        handleTouchEnd();
+      }
+    };
+    
+    document.addEventListener('touchmove', handleMove, { passive: false });
+    document.addEventListener('mousemove', handleMove);
+    document.addEventListener('touchend', handleEnd);
+    document.addEventListener('mouseup', handleEnd);
+    
+    return () => {
+      document.removeEventListener('touchmove', handleMove);
+      document.removeEventListener('mousemove', handleMove);
+      document.removeEventListener('touchend', handleEnd);
+      document.removeEventListener('mouseup', handleEnd);
+    };
+  }, [isOpen, mode, handleTouchMove, handleTouchEnd]);
+  
+  // カードのスートクラス
+  const getSuitClass = (card: Card) => {
+    return `suit-${card.race.toLowerCase()}`;
+  };
+  
+  // 手札カードをレンダリング（元サイズ、動的重なり計算）
+  const renderHandCard = (card: Card, index: number) => {
+    const count = player.hand.length;
+    const cardWidth = 64;
+    const screenWidth = 380;
+    
+    const maxSpacing = 48;
+    const minSpacing = 25;
+    
+    let spacing: number;
+    if (count <= 1) {
+      spacing = 0;
+    } else {
+      const fitSpacing = (screenWidth - cardWidth) / (count - 1);
+      spacing = Math.min(maxSpacing, Math.max(minSpacing, fitSpacing));
+    }
+    
+    const maxAngle = 15;
+    const centerIdx = (count - 1) / 2;
+    const offset = index - centerIdx;
+    const angle = count <= 1 ? 0 : (offset / Math.max(centerIdx, 0.5)) * maxAngle;
+    const xOffset = offset * spacing;
+    const yOffset = Math.abs(offset) * 5;
+    
+    return (
+      <div
+        key={`${card.rank}-${card.race}-${index}`}
+        className={`cuttle-hand-card ${getSuitClass(card)} playable`}
+        data-index={index}
+        style={{
+          '--angle': `${angle}deg`,
+          '--x-offset': `${xOffset}px`,
+          '--y-offset': `${yOffset}px`,
+          zIndex: 51 + index, // 手札エリア(50)より上、右のカードが上に
+        } as React.CSSProperties}
+        onTouchStart={(e) => handleTouchStart(e, index)}
+        onMouseDown={(e) => handleTouchStart(e, index)}
+      >
+        <div className="card-rank">{card.rank}</div>
+        <div className="card-suit">{RACE_NAMES[card.race]}</div>
+        <div className="card-effect">{getCardEffect(card).slice(0, 30)}</div>
+      </div>
+    );
+  };
+  
+  // 閲覧モード手札カードをレンダリング
+  const renderBrowseCard = (card: Card, index: number) => {
+    const count = player.hand.length;
+    const maxWidth = 320;
+    const maxSpacing = 65;
+    const minSpacing = 35;
+    
+    // 動的spacing計算
+    let spacing: number;
+    if (count <= 1) {
+      spacing = 0;
+    } else {
+      const neededWidth = (count - 1) * maxSpacing;
+      if (neededWidth <= maxWidth) {
+        spacing = maxSpacing;
+      } else {
+        spacing = Math.max(minSpacing, maxWidth / (count - 1));
+      }
+    }
+    
+    const maxAngle = 10;
+    const centerIdx = (count - 1) / 2;
+    const offset = index - centerIdx;
+    const angle = count <= 1 ? 0 : (offset / Math.max(centerIdx, 0.5)) * maxAngle;
+    const xOffset = offset * spacing;
+    const yOffset = Math.abs(offset) * 5;
+    
+    const isSelected = index === selectedIndex;
+    
+    return (
+      <div
+        key={`browse-${card.rank}-${card.race}-${index}`}
+        className={`cuttle-browse-card ${getSuitClass(card)} ${isSelected ? 'selected' : ''}`}
+        data-index={index}
+        style={{
+          left: `calc(50% + ${xOffset}px)`,
+          transform: `translateX(-50%) translateY(${yOffset}px) rotate(${angle}deg)`,
+          zIndex: isSelected ? 100 : index + 1,
+        }}
+      >
+        <div className="browse-rank">{card.rank}</div>
+        <div className="browse-suit">{RACE_NAMES[card.race]}</div>
+      </div>
+    );
+  };
+  
+  // プレビューカード
+  const renderPreviewCard = () => {
+    if (selectedIndex < 0 || !player.hand[selectedIndex]) return null;
+    
+    const card = player.hand[selectedIndex];
+    
+    return (
+      <div className={`cuttle-preview-card ${getSuitClass(card)}`}>
+        <div className="preview-rank">{card.rank}</div>
+        <div className="preview-suit">{RACE_NAMES[card.race]}</div>
+        <div className="preview-effect">{getCardEffect(card)}</div>
+      </div>
+    );
+  };
+  
+  // フィールドカードをレンダリング（均等配置）
+  const renderFieldCards = (cards: FieldCard[], isEnemy: boolean) => {
+    if (cards.length === 0) {
+      return <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem' }}>空</span>;
+    }
+    
+    // 領域幅に合わせて均等配置
+    const maxWidth = 320;
+    const cardWidth = 52;
+    const minGap = -30; // 最大重なり
+    const maxGap = 8;   // 重ならない時の間隔
+    
+    const totalCardsWidth = cards.length * cardWidth;
+    const availableSpace = maxWidth - cardWidth;
+    const gap = cards.length <= 1 ? 0 : 
+      Math.max(minGap, Math.min(maxGap, (availableSpace - totalCardsWidth) / (cards.length - 1)));
+    
+    return (
+      <div className="cuttle-field-cards" style={{ gap: `${gap}px` }}>
+        {cards.map((fc, i) => {
+          const isDropTarget = dropTarget === `enemyCard:${i}` && isEnemy;
+          
+          return (
+            <div
+              key={`field-${fc.card.rank}-${fc.card.race}-${i}`}
+              className={`cuttle-field-card ${getSuitClass(fc.card)} ${fc.owner !== (isEnemy ? 'player2' : 'player1') ? 'stolen' : ''} ${isDropTarget ? 'drop-target' : ''}`}
+              style={{ zIndex: i + 1, marginLeft: i > 0 ? `${gap}px` : 0 }}
+              onClick={() => {
+                if (gameState.phase === 'selectTarget' && isEnemy) {
+                  onFieldCardSelect(fc);
+                }
+              }}
+            >
+              <div className="card-rank">{fc.card.rank}</div>
+              <div className="card-suit">{RACE_NAMES[fc.card.race]}</div>
+              {fc.card.value > 0 && <div className="card-value">{fc.card.value}pt</div>}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+  
+  // 効果カードをレンダリング
+  const renderEffectCards = (cards: FieldCard[]) => {
+    const permanents = cards.filter(fc => isPermanentEffect(fc.card));
+    
+    if (permanents.length === 0) {
+      return <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem' }}>効果なし</span>;
+    }
+    
+    return (
+      <>
+        {permanents.map((fc, i) => (
+          <div
+            key={`effect-${fc.card.rank}-${fc.card.race}-${i}`}
+            className={`cuttle-effect-card type-${fc.card.rank}`}
+          >
+            <div>{fc.card.rank}</div>
+            <div style={{ fontSize: '0.5rem', marginTop: '2px' }}>{RACE_NAMES[fc.card.race]}</div>
+          </div>
+        ))}
+      </>
+    );
+  };
+  
+  if (!isOpen) return null;
+  
+  const isGameOver = gameState.phase === 'gameOver';
+  const isWin = playerPoints >= 21;
+  
+  return (
+    <div ref={screenRef} className={`cuttle-battle ${isOpen ? 'active' : ''}`}>
+      {/* 敵情報バー */}
+      <div className="cuttle-enemy-info">
+        <span className="cuttle-enemy-name">👹 {enemy.name}</span>
+        <span className="cuttle-enemy-points">点数: {enemyPoints}</span>
+      </div>
+      
+      {/* 敵手札（扇状 - 逆向き：敵なので上に開く） */}
+      <div className="cuttle-enemy-hand">
+        {enemy.hand.map((_, i) => {
+          const count = enemy.hand.length;
+          const maxAngle = 12;
+          const maxSpacing = 40;
+          const minSpacing = 22;
+          const cardWidth = 48;
+          const screenWidth = 360;
+          
+          let spacing: number;
+          if (count <= 1) {
+            spacing = 0;
+          } else {
+            const fitSpacing = (screenWidth - cardWidth) / (count - 1);
+            spacing = Math.min(maxSpacing, Math.max(minSpacing, fitSpacing));
+          }
+          
+          const centerIdx = (count - 1) / 2;
+          const offset = i - centerIdx;
+          // 敵の手札は逆向きなので角度を反転
+          const angle = count <= 1 ? 0 : (offset / Math.max(centerIdx, 0.5)) * -maxAngle;
+          const xOffset = offset * spacing;
+          // 端が上に上がるようにマイナス
+          const yOffset = -Math.abs(offset) * 3;
+          
+          return (
+            <div
+              key={i}
+              className="cuttle-enemy-card-back"
+              style={{
+                transform: `translateX(calc(-50% + ${xOffset}px)) translateY(${yOffset}px) rotate(${angle}deg)`,
+                zIndex: i + 1,
+              }}
+            />
+          );
+        })}
+      </div>
+      
+      {/* 敵 効果エリア */}
+      <div className="cuttle-enemy-effects">
+        {renderEffectCards(enemyEffectCards)}
+      </div>
+      
+      {/* 敵 点数エリア */}
+      <div 
+        ref={enemyPointsRef}
+        className={`cuttle-enemy-points-area ${dropTarget?.startsWith('enemy') ? 'drop-highlight' : ''}`}
+      >
+        {renderFieldCards(enemyPointCards, true)}
+      </div>
+      
+      {/* 山札・メッセージ・墓地 */}
+      <div className="cuttle-deck-area">
+        {/* 山札 */}
+        <div className="cuttle-deck-card">
+          <span className="pile-title">山札</span>
+          <span className="pile-count">残り{gameState.deck.length}枚</span>
+        </div>
+        
+        {/* アクションログ */}
+        <div className="cuttle-action-log">
+          <span className={`log-player ${gameState.currentPlayer}`}>
+            {gameState.currentPlayer === 'player1' ? player.name : enemy.name}
+          </span>
+          <span className="log-action">
+            {getActionLogMessage(gameState)}
+          </span>
+        </div>
+        
+        {/* 墓地 */}
+        <div 
+          className="cuttle-scrap-card"
+          onClick={() => setShowScrapModal(true)}
+        >
+          <span className="pile-title">墓地</span>
+          <span className="pile-count">残り{gameState.scrapPile.length}枚</span>
+        </div>
+      </div>
+      
+      {/* 自分 点数エリア */}
+      <div 
+        ref={playerPointsRef}
+        className={`cuttle-player-points-area ${dropTarget === 'playerPoints' ? 'drop-highlight' : ''}`}
+      >
+        {renderFieldCards(playerPointCards, false)}
+      </div>
+      
+      {/* 自分 効果エリア */}
+      <div 
+        ref={playerEffectsRef}
+        className={`cuttle-player-effects ${dropTarget === 'playerEffects' ? 'drop-highlight' : ''}`}
+      >
+        {renderEffectCards(playerEffectCards)}
+      </div>
+      
+      {/* ステータスバー */}
+      <div className="cuttle-status-bar">
+        <div className="cuttle-player-score">
+          <span className="cuttle-score-label">点数</span>
+          <span className="cuttle-score-value">{playerPoints}</span>
+          <span className="cuttle-score-target">/ 21</span>
+        </div>
+        <div className="cuttle-actions">
+          <button
+            className="cuttle-btn cuttle-btn-draw"
+            onClick={() => onAction('draw')}
+            disabled={isCPUTurn || gameState.deck.length === 0}
+          >
+            ドロー
+          </button>
+          <button
+            className="cuttle-btn cuttle-btn-pass"
+            onClick={() => onAction('pass')}
+            disabled={isCPUTurn}
+          >
+            パス
+          </button>
+          <button
+            className="cuttle-btn cuttle-btn-pass"
+            onClick={onClose}
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+      
+      {/* 手札 */}
+      <div className="cuttle-hand">
+        {player.hand.map(renderHandCard)}
+      </div>
+      
+      {/* 下部余白 */}
+      <div className="cuttle-bottom-spacer" />
+      
+      {/* 閲覧モード オーバーレイ */}
+      <div className={`cuttle-overlay ${mode === 'browsing' ? 'active' : ''}`} />
+      
+      {/* 閲覧モード 拡大カード */}
+      <div className={`cuttle-preview ${mode === 'browsing' ? 'active' : ''}`}>
+        {renderPreviewCard()}
+      </div>
+      
+      {/* 閲覧モード 手札 */}
+      <div className={`cuttle-browse-hand ${mode === 'browsing' ? 'active' : ''}`}>
+        {player.hand.map(renderBrowseCard)}
+      </div>
+      
+      {/* ドラッグカード */}
+      {mode === 'dragging' && selectedIndex >= 0 && player.hand[selectedIndex] && (
+        <div
+          className={`cuttle-drag ${getSuitClass(player.hand[selectedIndex])}`}
+          style={{
+            left: touchCurrent.x - 50,  // 100px / 2
+            top: touchCurrent.y - 70,   // 140px / 2
+          }}
+        >
+          <div className="drag-rank">{player.hand[selectedIndex].rank}</div>
+          <div className="drag-suit">{RACE_NAMES[player.hand[selectedIndex].race]}</div>
+        </div>
+      )}
+      
+      {/* ゲームオーバー */}
+      {isGameOver && (
+        <div className="cuttle-game-over">
+          <div className="result-icon">{isWin ? '🏆' : '💀'}</div>
+          <div className={`result-text ${isWin ? 'win' : 'lose'}`}>
+            {isWin ? '勝利！' : '敗北...'}
+          </div>
+          <button className="btn-restart" onClick={onRestart}>
+            もう一度
+          </button>
+        </div>
+      )}
+      
+      {/* 墓地モーダル */}
+      <div className={`cuttle-scrap-modal ${showScrapModal ? 'active' : ''}`}>
+        <div className="modal-title">墓地 ({gameState.scrapPile.length}枚)</div>
+        <div className="modal-cards">
+          {gameState.scrapPile.map((card, i) => {
+            const isSelectable = gameState.phase === 'selectTarget' && 
+                                 gameState.selectedCard?.rank === '3';
+            return (
+              <div
+                key={`scrap-${card.rank}-${card.race}-${i}`}
+                className={`modal-card ${isSelectable ? 'selectable' : ''}`}
+                onClick={() => {
+                  if (isSelectable) {
+                    onScrapSelect(card);
+                    setShowScrapModal(false);
+                  }
+                }}
+              >
+                <div style={{ fontSize: '1rem', fontWeight: 'bold', color: '#333' }}>{card.rank}</div>
+                <div style={{ fontSize: '0.55rem', color: '#666' }}>{RACE_NAMES[card.race]}</div>
+              </div>
+            );
+          })}
+        </div>
+        <button className="btn-close" onClick={() => setShowScrapModal(false)}>
+          閉じる
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default CuttleBattle;
+

@@ -9,6 +9,10 @@ import type {
 } from '../types/game';
 import { WINNING_POINTS } from '../types/game';
 
+// ============================================
+// ユーティリティ関数
+// ============================================
+
 // ランクから点数を取得
 export function getRankValue(rank: Rank): number {
   if (rank === 'A') return 1;
@@ -16,12 +20,65 @@ export function getRankValue(rank: Rank): number {
   return parseInt(rank);
 }
 
+// カードの効果説明を取得
+export function getCardEffect(card: Card): string {
+  const effectMap: Record<string, string> = {
+    'A': '相手の永続効果を1つ破壊',
+    '2': '相手の永続効果を1つ破壊',
+    '3': '墓地からカードを1枚回収',
+    '4': '相手は手札を2枚捨てる',
+    '5': '山札から2枚ドロー',
+    '6': '全ての永続効果を破壊',
+    '7': '山札を見て1枚ドロー',
+    '8': '相手は効果を使用できない',
+    '9': '相手の永続効果を全て破壊',
+    '10': 'いずれかの点数カードを破壊',
+    'J': '相手の点数カードを略奪',
+    'Q': 'カード効果の対象にならない',
+    'K': '勝利点数を-7する',
+  };
+  return effectMap[card.rank] || '';
+}
+
 // カードIDを生成
 function generateCardId(race: Race, rank: Rank): string {
   return `${race}-${rank}`;
 }
 
-// デッキを生成
+// 深いコピーでプレイヤーを複製
+function clonePlayer(player: Player): Player {
+  return {
+    ...player,
+    hand: [...player.hand],
+    field: player.field.map(fc => ({
+      ...fc,
+      card: { ...fc.card },
+      attachedKnights: [...fc.attachedKnights],
+    })),
+  };
+}
+
+// 深いコピーでゲーム状態を複製
+function cloneGameState(state: GameState): GameState {
+  return {
+    ...state,
+    deck: [...state.deck],
+    scrapPile: [...state.scrapPile],
+    player1: clonePlayer(state.player1),
+    player2: clonePlayer(state.player2),
+    opponentHandRevealed: { ...state.opponentHandRevealed },
+  };
+}
+
+// 相手プレイヤーIDを取得
+export function getOpponent(playerId: 'player1' | 'player2'): 'player1' | 'player2' {
+  return playerId === 'player1' ? 'player2' : 'player1';
+}
+
+// ============================================
+// デッキ生成
+// ============================================
+
 export function createDeck(): Card[] {
   const races: Race[] = ['elf', 'goblin', 'human', 'demon'];
   const ranks: Rank[] = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
@@ -42,7 +99,6 @@ export function createDeck(): Card[] {
   return deck;
 }
 
-// デッキをシャッフル
 export function shuffleDeck(deck: Card[]): Card[] {
   const shuffled = [...deck];
   for (let i = shuffled.length - 1; i > 0; i--) {
@@ -52,7 +108,10 @@ export function shuffleDeck(deck: Card[]): Card[] {
   return shuffled;
 }
 
-// プレイヤーを初期化
+// ============================================
+// ゲーム初期化
+// ============================================
+
 function createPlayer(id: 'player1' | 'player2', name: string): Player {
   return {
     id,
@@ -63,7 +122,6 @@ function createPlayer(id: 'player1' | 'player2', name: string): Player {
   };
 }
 
-// ゲームの初期状態を作成
 export function createInitialGameState(): GameState {
   const deck = shuffleDeck(createDeck());
   
@@ -79,7 +137,7 @@ export function createInitialGameState(): GameState {
     scrapPile: [],
     player1,
     player2,
-    currentPlayer: 'player1', // 先攻
+    currentPlayer: 'player1',
     phase: 'selectAction',
     winner: null,
     turnCount: 1,
@@ -92,52 +150,52 @@ export function createInitialGameState(): GameState {
   };
 }
 
-// 種族相性を判定（同数字スカトル時のみ使用）
-// 強さ: エルフ(0) < ゴブリン(1) < 人間(2) < デーモン(3)
+// ============================================
+// 種族相性（スカトル用）
+// ============================================
+
+// 強さ: エルフ(最弱) < ゴブリン < 人間 < デーモン(最強)
 // 例外: エルフはデーモンにのみ勝てる
 export function getRaceMatchup(attacker: Race, defender: Race): RaceMatchup {
-  // 同じ種族は相打ち
   if (attacker === defender) return 'draw';
   
-  // 種族の強さ（数字が大きいほど強い）
   const strength: Record<Race, number> = {
-    elf: 0,      // 最弱
+    elf: 0,
     goblin: 1,
     human: 2,
-    demon: 3,    // 最強
+    demon: 3,
   };
   
   // 特殊ルール：エルフはデーモンにのみ勝てる
   if (attacker === 'elf' && defender === 'demon') return 'win';
   if (attacker === 'demon' && defender === 'elf') return 'lose';
   
-  // 通常の強さ比較
   if (strength[attacker] > strength[defender]) return 'win';
   if (strength[attacker] < strength[defender]) return 'lose';
   
   return 'draw';
 }
 
-// スカトルが可能かどうか判定
+// スカトル可否判定
 export function canScuttle(
   attackerCard: Card, 
   defenderCard: FieldCard,
-  hasQueen: boolean
+  defenderHasQueen: boolean
 ): { canScuttle: boolean; result: 'success' | 'fail' | 'mutual' | 'blocked' } {
   // 魔術師で保護されている場合
-  if (hasQueen) {
+  if (defenderHasQueen) {
     return { canScuttle: false, result: 'blocked' };
   }
   
   const attackerValue = attackerCard.value;
   const defenderValue = defenderCard.card.value;
   
-  // 絵札は点数カードではないのでスカトル不可
+  // 点数カード同士でないとスカトル不可
   if (attackerValue === 0 || defenderValue === 0) {
     return { canScuttle: false, result: 'blocked' };
   }
   
-  // 攻撃側の数字が大きい場合は無条件で成功
+  // 攻撃側の数字が大きい場合は成功
   if (attackerValue > defenderValue) {
     return { canScuttle: true, result: 'success' };
   }
@@ -154,30 +212,31 @@ export function canScuttle(
     case 'win':
       return { canScuttle: true, result: 'success' };
     case 'lose':
-      return { canScuttle: true, result: 'fail' }; // スカトル失敗（自分のカードのみ捨て）
+      return { canScuttle: true, result: 'fail' };
     case 'draw':
-      return { canScuttle: true, result: 'mutual' }; // 相打ち
+      return { canScuttle: true, result: 'mutual' };
   }
 }
 
-// プレイヤーの合計点数を計算
+// ============================================
+// 点数計算
+// ============================================
+
 export function calculatePlayerPoints(player: Player): number {
   let points = 0;
   
   for (const fieldCard of player.field) {
-    // 自分が支配しているカードのみカウント
+    // 自分が支配しているカードの点数をカウント
+    // 永続効果として出した8は value=0 なのでカウントされない
     if (fieldCard.controller === player.id && fieldCard.card.value > 0) {
       points += fieldCard.card.value;
     }
   }
   
-  // 相手の場にあるが騎士で奪っているカードもカウント
-  // （これはfieldCardのcontrollerで管理される）
-  
   return points;
 }
 
-// 勝利条件をチェック
+// 勝利条件チェック
 export function checkWinCondition(state: GameState): 'player1' | 'player2' | null {
   const p1Points = calculatePlayerPoints(state.player1);
   const p2Points = calculatePlayerPoints(state.player2);
@@ -191,12 +250,16 @@ export function checkWinCondition(state: GameState): 'player1' | 'player2' | nul
   return null;
 }
 
-// 魔術師を持っているかチェック
+// ============================================
+// 状態チェック
+// ============================================
+
 export function hasQueen(player: Player): boolean {
-  return player.field.some(fc => fc.card.rank === 'Q' && fc.controller === player.id);
+  return player.field.some(fc => 
+    fc.card.rank === 'Q' && fc.controller === player.id
+  );
 }
 
-// 8（メガネ）を持っているかチェック
 export function hasGlasses(player: Player): boolean {
   return player.field.some(fc => 
     fc.card.rank === '8' && 
@@ -205,27 +268,28 @@ export function hasGlasses(player: Player): boolean {
   );
 }
 
-// 相手プレイヤーを取得
-export function getOpponent(playerId: 'player1' | 'player2'): 'player1' | 'player2' {
-  return playerId === 'player1' ? 'player2' : 'player1';
-}
+// ============================================
+// カード操作
+// ============================================
 
-// カードを手札から場に出す
+// カードを場に出す
 export function playCardToField(
   state: GameState, 
   playerId: 'player1' | 'player2', 
   card: Card,
   asPermanent: boolean = false
 ): GameState {
-  const newState = { ...state };
+  const newState = cloneGameState(state);
   const player = newState[playerId];
   
   // 手札から削除
   player.hand = player.hand.filter(c => c.id !== card.id);
   
-  // 場に追加
+  // 場に追加（8を永続として出す場合はvalue=0にする）
   const fieldCard: FieldCard = {
-    card: asPermanent && card.rank === '8' ? { ...card, value: 0 } : card,
+    card: (asPermanent && card.rank === '8') 
+      ? { ...card, value: 0 } 
+      : { ...card },
     attachedKnights: [],
     owner: playerId,
     controller: playerId,
@@ -243,14 +307,17 @@ export function playCardToField(
 
 // カードを捨て札に送る
 export function sendToScrap(state: GameState, card: Card): GameState {
-  const newState = { ...state };
-  newState.scrapPile = [...newState.scrapPile, card];
+  const newState = cloneGameState(state);
+  newState.scrapPile.push({ ...card });
   return newState;
 }
 
-// ターンを終了して次のプレイヤーへ
+// ============================================
+// ターン管理
+// ============================================
+
 export function endTurn(state: GameState): GameState {
-  const newState = { ...state };
+  const newState = cloneGameState(state);
   newState.currentPlayer = getOpponent(state.currentPlayer);
   newState.turnCount++;
   newState.phase = 'selectAction';
@@ -276,10 +343,10 @@ export function drawCard(state: GameState): GameState {
     return { ...state, message: '山札がありません' };
   }
   
-  const newState = { ...state };
+  const newState = cloneGameState(state);
   const player = newState[newState.currentPlayer];
   const drawnCard = newState.deck.shift()!;
-  player.hand = [...player.hand, drawnCard];
+  player.hand.push(drawnCard);
   newState.consecutivePasses = 0;
   
   return endTurn(newState);
@@ -291,7 +358,7 @@ export function pass(state: GameState): GameState {
     return { ...state, message: '山札があるのでパスできません' };
   }
   
-  const newState = { ...state };
+  const newState = cloneGameState(state);
   newState.consecutivePasses++;
   
   // 3回連続パスで引き分け
@@ -303,4 +370,3 @@ export function pass(state: GameState): GameState {
   
   return endTurn(newState);
 }
-

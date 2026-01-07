@@ -1,0 +1,864 @@
+/* ============================================
+   カトル バトル画面 - 化学式TCG風レイアウト
+   ============================================ */
+
+.cuttle-battle {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    z-index: 9999;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    color: #fff;
+}
+
+.cuttle-battle.active {
+    display: flex;
+}
+
+/* ========== レイヤー構造 ========== */
+/*
+  ■ デフォルトモード (default)
+    L1: フィールドエリア (z: 1-12)
+    L2: ステータスバー (z: 20)
+    L3: 手札エリア (z: 50)
+    L4: 手札カード (z: 51-60)
+  
+  ■ 閲覧モード (browsing)
+    L5: オーバーレイ (z: 10000) ← 全体を暗く
+    L6: 閲覧手札 (z: 10001) ← ステータスバーに重なる
+    L7: プレビュー (z: 10002) ← フィールドに重なる
+  
+  ■ ドラッグモード (dragging)
+    L8: ドラッグカード (z: 10003) ← 全ての上
+  
+  ■ モーダル
+    L9: 墓地モーダル (z: 10005)
+    L10: ゲームオーバー (z: 10010)
+*/
+
+/* ========== 敵情報バー (3%) ========== */
+.cuttle-enemy-info {
+    height: 3%;
+    min-height: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 12px;
+    background: rgba(255, 100, 100, 0.15);
+    border-bottom: 1px solid rgba(255, 100, 100, 0.3);
+    position: relative;
+    z-index: 1;
+}
+
+.cuttle-enemy-name {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #ff9999;
+}
+
+.cuttle-enemy-points {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #ffcc00;
+}
+
+/* ========== 敵手札 (10%) - 扇状表示 ========== */
+.cuttle-enemy-hand {
+    height: 10%;
+    min-height: 70px;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: 8px;
+    background: rgba(0, 0, 0, 0.2);
+    z-index: 2;
+    overflow: visible;
+}
+
+.cuttle-enemy-card-back {
+    position: absolute;
+    width: 48px;
+    height: 68px;
+    background: linear-gradient(135deg, #4a1a6b, #2d1b4e);
+    border: 2px solid #6a3a8b;
+    border-radius: 6px;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+    transform-origin: top center;
+    top: 8px;
+    left: 50%;
+}
+
+/* ========== 敵 効果エリア (8%) ========== */
+.cuttle-enemy-effects {
+    height: 8%;
+    min-height: 55px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: rgba(100, 50, 150, 0.1);
+    border-bottom: 1px solid rgba(100, 50, 150, 0.3);
+    position: relative;
+    z-index: 3;
+}
+
+.cuttle-effect-label {
+    position: absolute;
+    left: 8px;
+    font-size: 0.6rem;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* ========== 敵 点数エリア (15%) ========== */
+.cuttle-enemy-points-area {
+    height: 15%;
+    min-height: 90px;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 4px 10px;
+    background: rgba(255, 100, 100, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 4;
+}
+
+/* ========== 山札・墓地・メッセージエリア (11%) ========== */
+.cuttle-deck-area {
+    height: 11%;
+    min-height: 70px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 12px;
+    background: rgba(0, 0, 0, 0.4);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    position: relative;
+    z-index: 10;
+}
+
+/* 山札カード */
+.cuttle-deck-card {
+    width: 50px;
+    height: 100%;
+    max-height: 60px;
+    background: linear-gradient(135deg, #2a4a6a, #1a3a5a);
+    border: 2px solid #4a7a9a;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    cursor: pointer;
+    transition: transform 0.1s;
+    box-shadow: 
+        2px 2px 0 rgba(0, 0, 0, 0.3),
+        4px 4px 0 rgba(0, 0, 0, 0.2);
+}
+
+.cuttle-deck-card:active {
+    transform: scale(0.95);
+}
+
+.cuttle-deck-card .pile-title {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: #8ac;
+}
+
+.cuttle-deck-card .pile-count {
+    font-size: 0.55rem;
+    color: #6a9aba;
+}
+
+/* 墓地カード */
+.cuttle-scrap-card {
+    width: 50px;
+    height: 100%;
+    max-height: 60px;
+    background: linear-gradient(135deg, #4a3a3a, #3a2a2a);
+    border: 2px dashed #6a5a5a;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+.cuttle-scrap-card:active {
+    transform: scale(0.95);
+}
+
+.cuttle-scrap-card .pile-title {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: #a88;
+}
+
+.cuttle-scrap-card .pile-count {
+    font-size: 0.55rem;
+    color: #9a7a7a;
+}
+
+/* 中央メッセージボックス */
+.cuttle-action-log {
+    flex: 1;
+    max-width: 240px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 10px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 8px;
+    margin: 0 10px;
+}
+
+.cuttle-action-log .log-player {
+    font-size: 0.75rem;
+    font-weight: 700;
+    margin-bottom: 2px;
+}
+
+.cuttle-action-log .log-player.player1 {
+    color: #4fc3f7; /* プレイヤー1: 青系アクセント */
+}
+
+.cuttle-action-log .log-player.player2 {
+    color: #ff8a80; /* プレイヤー2(CPU): 赤系アクセント */
+}
+
+.cuttle-action-log .log-action {
+    font-size: 0.7rem;
+    color: #fff;
+    text-align: center;
+    line-height: 1.3;
+}
+
+/* ========== 自分 点数エリア (20%) ========== */
+.cuttle-player-points-area {
+    height: 20%;
+    min-height: 115px;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 4px 10px;
+    background: rgba(100, 200, 100, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 11;
+}
+
+/* ========== 自分 効果エリア (15%) ========== */
+.cuttle-player-effects {
+    height: 15%;
+    min-height: 90px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: rgba(100, 150, 200, 0.1);
+    border-bottom: 1px solid rgba(100, 150, 200, 0.3);
+    position: relative;
+    z-index: 12;
+}
+
+/* ========== ステータスバー (5%) ========== */
+.cuttle-status-bar {
+    height: 5%;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    background: rgba(0, 0, 0, 0.4);
+    border-bottom: 1px solid rgba(100, 200, 255, 0.2);
+    position: relative;
+    z-index: 20;
+}
+
+.cuttle-player-score {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cuttle-score-label {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.cuttle-score-value {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #ffcc00;
+    text-shadow: 0 0 10px rgba(255, 200, 0, 0.5);
+}
+
+.cuttle-score-target {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.cuttle-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.cuttle-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.cuttle-btn-draw {
+    background: linear-gradient(135deg, #4a9fff, #2a7fdf);
+    color: white;
+    box-shadow: 0 2px 8px rgba(74, 159, 255, 0.4);
+}
+
+.cuttle-btn-draw:active {
+    transform: scale(0.95);
+}
+
+.cuttle-btn-draw:disabled {
+    background: #444;
+    color: #888;
+    box-shadow: none;
+}
+
+.cuttle-btn-pass {
+    background: rgba(100, 100, 100, 0.5);
+    color: #aaa;
+    border: 1px solid #666;
+}
+
+.cuttle-btn-pass:active {
+    transform: scale(0.95);
+}
+
+/* ========== 手札エリア (10%) ========== */
+.cuttle-hand {
+    height: 10%;
+    min-height: 70px;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    padding-bottom: 8px;
+    background: linear-gradient(180deg, rgba(0, 50, 100, 0.2) 0%, rgba(0, 30, 60, 0.4) 100%);
+    z-index: 50;
+    overflow: visible; /* カードが上にはみ出すのを許可 */
+    /* 手札エリアは他のエリアより上のレイヤー */
+    /* タッチイベントは手札エリア内で完結させる */
+}
+
+/* ========== 下部余白エリア (3%) ========== */
+.cuttle-bottom-spacer {
+    height: 3%;
+    min-height: 20px;
+    background: linear-gradient(180deg, rgba(0, 30, 60, 0.4) 0%, rgba(0, 20, 40, 0.6) 100%);
+}
+
+/* ========== フィールドカード ========== */
+.cuttle-field-cards {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    padding: 0 8px;
+}
+
+.cuttle-field-card {
+    position: relative;
+    flex-shrink: 0;
+    width: 52px;
+    height: 72px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 2px solid rgba(200, 200, 200, 0.8);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #333;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.cuttle-field-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+/* スート色 */
+.cuttle-field-card.suit-elf { border-color: #4CAF50; }
+.cuttle-field-card.suit-goblin { border-color: #9C27B0; }
+.cuttle-field-card.suit-human { border-color: #2196F3; }
+.cuttle-field-card.suit-demon { border-color: #f44336; }
+
+.cuttle-field-card .card-rank {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.cuttle-field-card .card-suit {
+    font-size: 0.6rem;
+    margin-top: 2px;
+    opacity: 0.7;
+}
+
+.cuttle-field-card .card-value {
+    position: absolute;
+    bottom: 2px;
+    right: 4px;
+    font-size: 0.55rem;
+    color: #888;
+}
+
+/* 略奪マーク */
+.cuttle-field-card.stolen {
+    box-shadow: 0 0 12px rgba(255, 200, 0, 0.6);
+}
+
+.cuttle-field-card.stolen::after {
+    content: '⚔️';
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    font-size: 0.8rem;
+}
+
+/* ドロップターゲット */
+.cuttle-field-card.drop-target {
+    animation: targetPulse 0.8s ease-in-out infinite;
+}
+
+@keyframes targetPulse {
+    0%, 100% { box-shadow: 0 0 10px rgba(255, 100, 100, 0.5); }
+    50% { box-shadow: 0 0 20px rgba(255, 100, 100, 0.8); }
+}
+
+/* 効果カード */
+.cuttle-effect-card {
+    width: 44px;
+    height: 60px;
+    background: linear-gradient(145deg, rgba(100, 150, 255, 0.95), rgba(80, 120, 200, 0.95));
+    border: 2px solid rgba(100, 150, 255, 0.8);
+    border-radius: 5px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: white;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.cuttle-effect-card.type-8 { background: linear-gradient(145deg, #607D8B, #455A64); border-color: #78909C; }
+.cuttle-effect-card.type-J { background: linear-gradient(145deg, #FF9800, #F57C00); border-color: #FFB74D; }
+.cuttle-effect-card.type-Q { background: linear-gradient(145deg, #E91E63, #C2185B); border-color: #F48FB1; }
+.cuttle-effect-card.type-K { background: linear-gradient(145deg, #9C27B0, #7B1FA2); border-color: #CE93D8; }
+
+/* ========== 手札カード（元サイズ） ========== */
+.cuttle-hand-card {
+    position: absolute;
+    width: 64px;
+    height: 90px;
+    background: rgba(255, 255, 255, 0.98);
+    border: 2px solid rgba(200, 210, 220, 0.5);
+    border-radius: 8px;
+    padding: 6px;
+    text-align: center;
+    cursor: pointer;
+    transform-origin: bottom center;
+    transform: translateX(calc(-50% + var(--x-offset))) translateY(var(--y-offset)) rotate(var(--angle));
+    transition: transform 0.15s, box-shadow 0.15s;
+    left: 50%;
+    bottom: 8px;
+    box-shadow: -2px 3px 10px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    /* z-indexはJS側で動的に設定（index + 51） */
+}
+
+.cuttle-hand-card .card-rank {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #333;
+}
+
+.cuttle-hand-card .card-suit {
+    font-size: 0.65rem;
+    color: #666;
+    margin-top: 2px;
+}
+
+.cuttle-hand-card .card-effect {
+    font-size: 0.5rem;
+    color: #888;
+    margin-top: 4px;
+    line-height: 1.2;
+}
+
+/* スート色 */
+.cuttle-hand-card.suit-elf { border-color: #4CAF50; }
+.cuttle-hand-card.suit-elf .card-rank { color: #2E7D32; }
+
+.cuttle-hand-card.suit-goblin { border-color: #9C27B0; }
+.cuttle-hand-card.suit-goblin .card-rank { color: #7B1FA2; }
+
+.cuttle-hand-card.suit-human { border-color: #2196F3; }
+.cuttle-hand-card.suit-human .card-rank { color: #1565C0; }
+
+.cuttle-hand-card.suit-demon { border-color: #f44336; }
+.cuttle-hand-card.suit-demon .card-rank { color: #C62828; }
+
+/* プレイ可能 */
+.cuttle-hand-card.playable {
+    box-shadow: 0 0 12px rgba(100, 255, 150, 0.6), 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* ========== 閲覧モード オーバーレイ ========== */
+.cuttle-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 10000;
+    display: none;
+}
+
+.cuttle-overlay.active {
+    display: block;
+}
+
+/* ========== 閲覧モード 拡大カード ========== */
+/* 閲覧モード時はフィールドエリアに重なって表示（化学式TCG準拠） */
+.cuttle-preview {
+    position: fixed;
+    top: 35%; /* フィールドエリアに重なる位置 */
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10002;
+    display: none;
+}
+
+.cuttle-preview.active {
+    display: block;
+}
+
+.cuttle-preview-card {
+    width: 180px;
+    min-height: 250px;
+    background: rgba(255, 255, 255, 0.98);
+    border: 4px solid rgba(200, 210, 220, 0.8);
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.cuttle-preview-card .preview-rank {
+    font-size: 3rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.cuttle-preview-card .preview-suit {
+    font-size: 1.2rem;
+    color: #666;
+    margin-bottom: 12px;
+}
+
+.cuttle-preview-card .preview-effect {
+    font-size: 0.85rem;
+    color: #444;
+    line-height: 1.4;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+}
+
+/* スート色 */
+.cuttle-preview-card.suit-elf { border-color: #4CAF50; }
+.cuttle-preview-card.suit-elf .preview-rank { color: #2E7D32; }
+
+.cuttle-preview-card.suit-goblin { border-color: #9C27B0; }
+.cuttle-preview-card.suit-goblin .preview-rank { color: #7B1FA2; }
+
+.cuttle-preview-card.suit-human { border-color: #2196F3; }
+.cuttle-preview-card.suit-human .preview-rank { color: #1565C0; }
+
+.cuttle-preview-card.suit-demon { border-color: #f44336; }
+.cuttle-preview-card.suit-demon .preview-rank { color: #C62828; }
+
+/* ========== 閲覧モード 手札 ========== */
+/* 閲覧モード時は手札がステータスバーに重なる（化学式TCG準拠） */
+.cuttle-browse-hand {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 220px; /* ステータスバーに重なる高さ */
+    z-index: 10001;
+    display: none;
+    background: transparent; /* 背景なし - オーバーレイが暗くする */
+}
+
+.cuttle-browse-hand.active {
+    display: block;
+}
+
+.cuttle-browse-card {
+    position: absolute;
+    bottom: 25px;
+    width: 100px;   /* 閲覧モード用サイズ */
+    height: 140px;
+    background: rgba(255, 255, 255, 0.98);
+    border: 2px solid rgba(200, 210, 220, 0.5);
+    border-radius: 10px;
+    padding: 10px;
+    text-align: center;
+    transition: transform 0.1s ease-out, box-shadow 0.1s;
+    box-shadow: -2px 4px 15px rgba(0, 0, 0, 0.3);
+    transform-origin: bottom center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.cuttle-browse-card.selected {
+    transform: translateX(-50%) translateY(-60px) scale(1.2) rotate(0deg) !important;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.45);
+}
+
+.cuttle-browse-card .browse-rank {
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.cuttle-browse-card .browse-suit {
+    font-size: 1rem;
+    color: #666;
+    margin-top: 6px;
+}
+
+/* スート色 */
+.cuttle-browse-card.suit-elf { border-color: #4CAF50; }
+.cuttle-browse-card.suit-elf .browse-rank { color: #2E7D32; }
+
+.cuttle-browse-card.suit-goblin { border-color: #9C27B0; }
+.cuttle-browse-card.suit-goblin .browse-rank { color: #7B1FA2; }
+
+.cuttle-browse-card.suit-human { border-color: #2196F3; }
+.cuttle-browse-card.suit-human .browse-rank { color: #1565C0; }
+
+.cuttle-browse-card.suit-demon { border-color: #f44336; }
+.cuttle-browse-card.suit-demon .browse-rank { color: #C62828; }
+
+/* ========== ドラッグカード ========== */
+.cuttle-drag {
+    position: fixed;
+    width: 100px;
+    height: 140px;
+    background: rgba(255, 255, 255, 0.98);
+    border: 3px solid #4CAF50;
+    border-radius: 12px;
+    padding: 10px;
+    text-align: center;
+    z-index: 10003;
+    pointer-events: none;
+    box-shadow: 0 20px 50px rgba(0, 200, 100, 0.5);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.cuttle-drag .drag-rank {
+    font-size: 2.2rem;
+    font-weight: 700;
+}
+
+.cuttle-drag .drag-suit {
+    font-size: 1rem;
+    color: #666;
+    margin-top: 6px;
+}
+
+/* スート色 */
+.cuttle-drag.suit-elf { border-color: #4CAF50; }
+.cuttle-drag.suit-elf .drag-rank { color: #2E7D32; }
+
+.cuttle-drag.suit-goblin { border-color: #9C27B0; }
+.cuttle-drag.suit-goblin .drag-rank { color: #7B1FA2; }
+
+.cuttle-drag.suit-human { border-color: #2196F3; }
+.cuttle-drag.suit-human .drag-rank { color: #1565C0; }
+
+.cuttle-drag.suit-demon { border-color: #f44336; }
+.cuttle-drag.suit-demon .drag-rank { color: #C62828; }
+
+/* ========== ドロップエリアハイライト ========== */
+.cuttle-player-points-area.drop-highlight,
+.cuttle-player-effects.drop-highlight {
+    background: rgba(100, 255, 150, 0.15);
+    box-shadow: inset 0 0 20px rgba(100, 255, 150, 0.3);
+}
+
+.cuttle-enemy-points-area.drop-highlight {
+    background: rgba(255, 100, 100, 0.15);
+    box-shadow: inset 0 0 20px rgba(255, 100, 100, 0.3);
+}
+
+/* メッセージは山札・墓地エリア内に移動 */
+
+/* ========== 勝利/敗北表示 ========== */
+.cuttle-game-over {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10010;
+}
+
+.cuttle-game-over .result-icon {
+    font-size: 5rem;
+    margin-bottom: 20px;
+}
+
+.cuttle-game-over .result-text {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 30px;
+}
+
+.cuttle-game-over .result-text.win {
+    color: #4CAF50;
+}
+
+.cuttle-game-over .result-text.lose {
+    color: #f44336;
+}
+
+.cuttle-game-over .btn-restart {
+    padding: 15px 40px;
+    background: linear-gradient(135deg, #4a9fff, #2a7fdf);
+    border: none;
+    border-radius: 25px;
+    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* ========== 墓地モーダル ========== */
+.cuttle-scrap-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10005;
+}
+
+.cuttle-scrap-modal.active {
+    display: flex;
+}
+
+.cuttle-scrap-modal .modal-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 20px;
+}
+
+.cuttle-scrap-modal .modal-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    max-width: 320px;
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.cuttle-scrap-modal .modal-card {
+    width: 56px;
+    height: 78px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 2px solid #666;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+.cuttle-scrap-modal .modal-card:hover {
+    transform: scale(1.1);
+}
+
+.cuttle-scrap-modal .modal-card.selectable {
+    border-color: #4CAF50;
+    box-shadow: 0 0 10px rgba(100, 255, 150, 0.5);
+}
+
+.cuttle-scrap-modal .btn-close {
+    margin-top: 20px;
+    padding: 10px 30px;
+    background: rgba(100, 100, 100, 0.5);
+    border: 1px solid #666;
+    border-radius: 20px;
+    color: #aaa;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
