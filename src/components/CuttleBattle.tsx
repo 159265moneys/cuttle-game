@@ -190,13 +190,14 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
     onCardSelect(pendingCard);
     
     // スカトルアクションを開始してからターゲット選択
+    // ReactのsetStateは非同期なので十分な時間を確保
     setTimeout(() => {
       onAction('scuttle');
       setTimeout(() => {
         onFieldCardSelect(pendingTarget);
         addLog('player1', `${pendingCard.rank}で${pendingTarget.card.rank}を破壊`);
-      }, 50);
-    }, 50);
+      }, 150);
+    }, 150);
     
     closeActionModal();
   }, [pendingCard, pendingTarget, onCardSelect, onAction, onFieldCardSelect, addLog, closeActionModal]);
@@ -208,6 +209,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
     // まずカードを選択
     onCardSelect(pendingCard);
     
+    // ReactのsetStateは非同期なので十分な時間を確保
     if (pendingCard.rank === 'J') {
       // J: 略奪
       setTimeout(() => {
@@ -215,8 +217,8 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
         setTimeout(() => {
           onFieldCardSelect(pendingTarget);
           addLog('player1', `Jで${pendingTarget.card.rank}を略奪`);
-        }, 50);
-      }, 50);
+        }, 150);
+      }, 150);
     } else if (['A', '2'].includes(pendingCard.rank)) {
       // A, 2: 永続効果破壊
       setTimeout(() => {
@@ -224,8 +226,8 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
         setTimeout(() => {
           onFieldCardSelect(pendingTarget);
           addLog('player1', `${pendingCard.rank}で${pendingTarget.card.rank}を破壊`);
-        }, 50);
-      }, 50);
+        }, 150);
+      }, 150);
     } else if (pendingCard.rank === '9') {
       // 9: カードを手札に戻す
       setTimeout(() => {
@@ -233,8 +235,8 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
         setTimeout(() => {
           onFieldCardSelect(pendingTarget);
           addLog('player1', `9で${pendingTarget.card.rank}を手札に戻した`);
-        }, 50);
-      }, 50);
+        }, 150);
+      }, 150);
     }
     
     closeActionModal();
