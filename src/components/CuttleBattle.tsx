@@ -588,18 +588,6 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
           />
         )}
         
-        {/* スートアイコン - 左上（コーナー） */}
-        <div 
-          className="card-suit-icon corner top-left"
-          style={getSuitMaskStyle(card.race)}
-        />
-        
-        {/* スートアイコン - 右下（コーナー、反転） */}
-        <div 
-          className="card-suit-icon corner bottom-right"
-          style={getSuitMaskStyle(card.race)}
-        />
-        
         {/* ランク表示 - 左上 */}
         <div className="card-rank top-left">{card.rank}</div>
         
@@ -675,14 +663,6 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
             style={getFaceMaskStyle(card.race, card.rank)}
           />
         )}
-        <div 
-          className="card-suit-icon corner top-left"
-          style={getSuitMaskStyle(card.race)}
-        />
-        <div 
-          className="card-suit-icon corner bottom-right"
-          style={getSuitMaskStyle(card.race)}
-        />
         <div className="card-rank top-left">{card.rank}</div>
         <div className="card-rank bottom-right">{card.rank}</div>
         {pipLayout && (
@@ -758,58 +738,69 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
     );
   };
   
-  // フィールドカードをレンダリング（均等配置）
+  // フィールドカードをレンダリング（フルデザイン、エリア縦幅いっぱい）
   const renderFieldCards = (cards: FieldCard[], isEnemy: boolean) => {
     if (cards.length === 0) {
       return <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem' }}>空</span>;
     }
     
-    // 領域幅に合わせて均等配置
-    const maxWidth = 320;
-    const cardWidth = 52;
-    const minGap = -30; // 最大重なり
-    const maxGap = 8;   // 重ならない時の間隔
-    
-    const totalCardsWidth = cards.length * cardWidth;
-    const availableSpace = maxWidth - cardWidth;
-    const gap = cards.length <= 1 ? 0 : 
-      Math.max(minGap, Math.min(maxGap, (availableSpace - totalCardsWidth) / (cards.length - 1)));
-    
     return (
-      <div className="cuttle-field-cards" style={{ gap: `${gap}px` }}>
+      <div className="cuttle-field-cards-full">
         {cards.map((fc, i) => {
           const isDropTarget = dropTarget === `enemyCard:${i}` && isEnemy;
+          const pipLayout = PIP_LAYOUTS[fc.card.rank];
           
           return (
             <div
               key={`field-${fc.card.rank}-${fc.card.race}-${i}`}
-              className={`cuttle-field-card ${getSuitClass(fc.card)} ${fc.owner !== (isEnemy ? 'player2' : 'player1') ? 'stolen' : ''} ${isDropTarget ? 'drop-target' : ''}`}
-              style={{ zIndex: i + 1, marginLeft: i > 0 ? `${gap}px` : 0 }}
+              className={`cuttle-field-card-full ${getSuitClass(fc.card)} ${fc.owner !== (isEnemy ? 'player2' : 'player1') ? 'stolen' : ''} ${isDropTarget ? 'drop-target' : ''}`}
+              style={{ zIndex: i + 1 }}
               onClick={() => {
                 if (gameState.phase === 'selectTarget' && isEnemy) {
                   onFieldCardSelect(fc);
                 }
               }}
             >
-              <div className="card-parchment small" />
+              {/* カード背景 */}
+              <div className="card-parchment" />
+              
+              {/* 絵札イラスト */}
               {isFaceCard(fc.card.rank) && (
                 <div 
-                  className="card-face-art small"
+                  className="card-face-art field"
                   style={getFaceMaskStyle(fc.card.race, fc.card.rank)}
                 />
               )}
-              <div 
-                className="card-suit-icon top-left small"
-                style={getSuitMaskStyle(fc.card.race)}
-              />
-              <div className="card-rank top-left small">{fc.card.rank}</div>
-              {!isFaceCard(fc.card.rank) && (
+              
+              {/* ランク表示 */}
+              <div className="card-rank top-left field">{fc.card.rank}</div>
+              <div className="card-rank bottom-right field">{fc.card.rank}</div>
+              
+              {/* 数字カードのスート配置 */}
+              {pipLayout && (
+                <div className="card-pips field">
+                  {pipLayout.map((pip, j) => (
+                    <div
+                      key={j}
+                      className={`card-pip field ${pip.inverted ? 'inverted' : ''}`}
+                      style={{
+                        left: `${pip.x}%`,
+                        top: `${pip.y}%`,
+                        ...getSuitMaskStyle(fc.card.race),
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+              
+              {/* 下部情報ボックス（アイコン＋ランク） */}
+              <div className="field-card-info">
                 <div 
-                  className="card-suit-icon center small"
+                  className="field-card-info-icon"
                   style={getSuitMaskStyle(fc.card.race)}
                 />
-              )}
-              {fc.card.value > 0 && <div className="card-value">{fc.card.value}pt</div>}
+                <span className="field-card-info-rank">{fc.card.rank}</span>
+              </div>
             </div>
           );
         })}
@@ -817,7 +808,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
     );
   };
   
-  // 効果カードをレンダリング
+  // 効果カードをレンダリング（フルデザイン）
   const renderEffectCards = (cards: FieldCard[]) => {
     const permanents = cards.filter(fc => isPermanentEffect(fc.card));
     
@@ -826,17 +817,37 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
     }
     
     return (
-      <>
+      <div className="cuttle-effect-cards-full">
         {permanents.map((fc, i) => (
           <div
             key={`effect-${fc.card.rank}-${fc.card.race}-${i}`}
-            className={`cuttle-effect-card type-${fc.card.rank}`}
+            className={`cuttle-field-card-full effect ${getSuitClass(fc.card)}`}
+            style={{ zIndex: i + 1 }}
           >
-            <div>{fc.card.rank}</div>
-            <div style={{ fontSize: '0.5rem', marginTop: '2px' }}>{RACE_NAMES[fc.card.race]}</div>
+            {/* カード背景 */}
+            <div className="card-parchment" />
+            
+            {/* 絵札イラスト（8, J, Q, K） */}
+            <div 
+              className="card-face-art field"
+              style={getFaceMaskStyle(fc.card.race, fc.card.rank)}
+            />
+            
+            {/* ランク表示 */}
+            <div className="card-rank top-left field">{fc.card.rank}</div>
+            <div className="card-rank bottom-right field">{fc.card.rank}</div>
+            
+            {/* 下部情報ボックス（アイコン＋ランク） */}
+            <div className="field-card-info">
+              <div 
+                className="field-card-info-icon"
+                style={getSuitMaskStyle(fc.card.race)}
+              />
+              <span className="field-card-info-rank">{fc.card.rank}</span>
+            </div>
           </div>
         ))}
-      </>
+      </div>
     );
   };
   
@@ -1103,14 +1114,6 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
                 style={getFaceMaskStyle(dragCard.race, dragCard.rank)}
               />
             )}
-            <div 
-              className="card-suit-icon corner top-left"
-              style={getSuitMaskStyle(dragCard.race)}
-            />
-            <div 
-              className="card-suit-icon corner bottom-right"
-              style={getSuitMaskStyle(dragCard.race)}
-            />
             <div className="card-rank top-left">{dragCard.rank}</div>
             <div className="card-rank bottom-right">{dragCard.rank}</div>
             {pipLayout && (

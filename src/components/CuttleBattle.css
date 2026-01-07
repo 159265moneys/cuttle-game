@@ -585,7 +585,153 @@
     background: linear-gradient(180deg, rgba(201, 162, 39, 0.2) 0%, rgba(13, 13, 20, 0.8) 100%);
 }
 
-/* ========== フィールドカード ========== */
+/* ========== フィールドカード（フルサイズ版） ========== */
+.cuttle-field-cards-full,
+.cuttle-effect-cards-full {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    gap: 4px;
+    padding: 2px 4px;
+}
+
+.cuttle-field-card-full {
+    position: relative;
+    flex-shrink: 0;
+    height: 95%;
+    aspect-ratio: 5 / 7;
+    max-width: 70px;
+    background: transparent;
+    border: 2px solid rgba(80, 60, 40, 0.8);
+    border-radius: 5px;
+    color: #e8e0d4;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    font-family: 'Cinzel', serif;
+    overflow: hidden;
+}
+
+.cuttle-field-card-full:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 12px rgba(0, 0, 0, 0.6);
+}
+
+/* スート色 - 枠線と発光 */
+.cuttle-field-card-full.suit-elf { 
+    border-color: var(--race-elf); 
+    box-shadow: 0 0 6px var(--race-elf-glow), 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+.cuttle-field-card-full.suit-elf .card-rank { color: #c9b860; }
+
+.cuttle-field-card-full.suit-goblin { 
+    border-color: var(--race-goblin); 
+    box-shadow: 0 0 6px var(--race-goblin-glow), 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+.cuttle-field-card-full.suit-goblin .card-rank { color: #6ab87a; }
+
+.cuttle-field-card-full.suit-human { 
+    border-color: var(--race-human); 
+    box-shadow: 0 0 6px var(--race-human-glow), 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+.cuttle-field-card-full.suit-human .card-rank { color: #c96060; }
+
+.cuttle-field-card-full.suit-demon { 
+    border-color: var(--race-demon); 
+    box-shadow: 0 0 6px var(--race-demon-glow), 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+.cuttle-field-card-full.suit-demon .card-rank { color: #7090c0; }
+
+/* 略奪マーク */
+.cuttle-field-card-full.stolen {
+    box-shadow: 0 0 10px rgba(201, 162, 39, 0.6);
+}
+
+.cuttle-field-card-full.stolen::after {
+    content: '⚔️';
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    font-size: 0.7rem;
+    z-index: 10;
+}
+
+/* ドロップターゲット */
+.cuttle-field-card-full.drop-target {
+    animation: targetPulse 0.8s ease-in-out infinite;
+}
+
+/* フィールドカード用のランク表示 */
+.card-rank.field {
+    font-size: 0.6rem;
+}
+
+.card-rank.field.top-left {
+    top: 2px;
+    left: 3px;
+}
+
+.card-rank.field.bottom-right {
+    bottom: 14px;  /* 情報ボックス分上にずらす */
+    right: 3px;
+}
+
+/* フィールドカード用の絵札イラスト */
+.card-face-art.field {
+    width: 70%;
+    height: 55%;
+    top: 45%;
+}
+
+/* フィールドカード用のスート配置 */
+.card-pips.field {
+    top: 12%;
+    left: 18%;
+    right: 18%;
+    bottom: 22%;  /* 情報ボックス分上にずらす */
+}
+
+.card-pip.field {
+    width: 8px;
+    height: 8px;
+}
+
+/* 下部情報ボックス */
+.field-card-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 14px;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    z-index: 5;
+    border-top: 1px solid rgba(120, 90, 50, 0.4);
+}
+
+.field-card-info-icon {
+    width: 9px;
+    height: 9px;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+}
+
+.field-card-info-rank {
+    font-size: 0.6rem;
+    font-weight: 700;
+    font-family: 'Cinzel', serif;
+}
+
+/* 旧フィールドカード（互換性のため残す） */
 .cuttle-field-cards {
     display: flex;
     justify-content: center;
