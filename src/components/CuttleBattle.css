@@ -471,20 +471,19 @@
     flex-shrink: 0;
     width: 52px;
     height: 72px;
-    background: linear-gradient(180deg, #2a2535, #1a1825);
-    border: 2px solid rgba(201, 162, 39, 0.6);
+    background: transparent;
+    border: 2px solid rgba(80, 60, 40, 0.8);
     border-radius: 6px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.9rem;
-    font-weight: bold;
     color: #e8e0d4;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
     cursor: pointer;
     transition: transform 0.15s, box-shadow 0.15s;
     font-family: 'Cinzel', serif;
+    overflow: hidden;
+}
+
+.cuttle-field-card .card-parchment.small {
+    border-radius: 4px;
 }
 
 .cuttle-field-card:hover {
@@ -492,29 +491,39 @@
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6);
 }
 
-/* スート色 - ダークファンタジー */
-.cuttle-field-card.suit-elf { border-color: #2d8a4e; background: linear-gradient(180deg, #1a3525, #0d1d15); }
-.cuttle-field-card.suit-goblin { border-color: #8b2942; background: linear-gradient(180deg, #351a25, #1d0d15); }
-.cuttle-field-card.suit-human { border-color: #3d6b99; background: linear-gradient(180deg, #1a2535, #0d1520); }
-.cuttle-field-card.suit-demon { border-color: #6a2c91; background: linear-gradient(180deg, #2a1a35, #150d1d); }
-
-.cuttle-field-card .card-rank {
-    font-size: 1.1rem;
-    font-weight: 700;
+/* スート色 - 枠線と発光 */
+.cuttle-field-card.suit-elf { 
+    border-color: var(--race-elf); 
+    box-shadow: 0 0 6px var(--race-elf-glow), 0 2px 8px rgba(0, 0, 0, 0.5);
 }
+.cuttle-field-card.suit-elf .card-rank { color: #c9b860; }
 
-.cuttle-field-card .card-suit {
-    font-size: 0.6rem;
-    margin-top: 2px;
-    opacity: 0.7;
+.cuttle-field-card.suit-goblin { 
+    border-color: var(--race-goblin); 
+    box-shadow: 0 0 6px var(--race-goblin-glow), 0 2px 8px rgba(0, 0, 0, 0.5);
 }
+.cuttle-field-card.suit-goblin .card-rank { color: #6ab87a; }
+
+.cuttle-field-card.suit-human { 
+    border-color: var(--race-human); 
+    box-shadow: 0 0 6px var(--race-human-glow), 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+.cuttle-field-card.suit-human .card-rank { color: #c96060; }
+
+.cuttle-field-card.suit-demon { 
+    border-color: var(--race-demon); 
+    box-shadow: 0 0 6px var(--race-demon-glow), 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+.cuttle-field-card.suit-demon .card-rank { color: #7090c0; }
 
 .cuttle-field-card .card-value {
     position: absolute;
     bottom: 2px;
     right: 4px;
-    font-size: 0.55rem;
+    font-size: 0.5rem;
     color: #c9a227;
+    z-index: 3;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
 }
 
 /* 略奪マーク */
@@ -563,16 +572,217 @@
 .cuttle-effect-card.type-Q { background: linear-gradient(145deg, #3a1a2a, #2a0a1a); border-color: #8a3a5a; color: #d98ab3; }
 .cuttle-effect-card.type-K { background: linear-gradient(145deg, #2a1a3a, #1a0a2a); border-color: #6a3a8a; color: #b38ad9; }
 
+/* ========================================
+   カードスプライト共通スタイル
+   ======================================== */
+
+/* 種族カラー変数 - 擦れた暗いダークファンタジー色 */
+:root {
+    --race-human: #8b3535;      /* 汚れた暗い赤 */
+    --race-demon: #354a7a;      /* 汚れた暗い青 */
+    --race-elf: #7a6a25;        /* 汚れた暗い黄/金 */
+    --race-goblin: #2d5a3d;     /* 汚れた暗い緑 */
+    
+    --race-human-glow: rgba(139, 53, 53, 0.4);
+    --race-demon-glow: rgba(53, 74, 122, 0.4);
+    --race-elf-glow: rgba(122, 106, 37, 0.4);
+    --race-goblin-glow: rgba(45, 90, 61, 0.4);
+}
+
+/* 羊皮紙テクスチャ背景 */
+.card-parchment {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 6px;
+    background: 
+        /* 焼け跡のエッジ */
+        radial-gradient(ellipse at 10% 10%, rgba(30, 20, 10, 0.6) 0%, transparent 50%),
+        radial-gradient(ellipse at 90% 90%, rgba(30, 20, 10, 0.6) 0%, transparent 50%),
+        radial-gradient(ellipse at 85% 15%, rgba(25, 15, 5, 0.4) 0%, transparent 40%),
+        radial-gradient(ellipse at 15% 85%, rgba(25, 15, 5, 0.4) 0%, transparent 40%),
+        /* 汚れ・シミ */
+        radial-gradient(circle at 30% 70%, rgba(60, 40, 20, 0.3) 0%, transparent 30%),
+        radial-gradient(circle at 70% 30%, rgba(50, 35, 15, 0.25) 0%, transparent 25%),
+        /* 基本の羊皮紙色 */
+        linear-gradient(180deg, 
+            #3d3328 0%,     /* 上部やや明るい */
+            #2e2820 30%,    /* 中間 */
+            #252018 70%,    /* 下部やや暗い */
+            #1a1510 100%    /* 最下部 */
+        );
+    opacity: 0.95;
+    z-index: 0;
+}
+
+.card-parchment::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 6px;
+    /* 縦筋のテクスチャ（羊皮紙の繊維感） */
+    background: repeating-linear-gradient(
+        90deg,
+        transparent 0px,
+        rgba(255, 245, 220, 0.02) 1px,
+        transparent 2px,
+        transparent 4px
+    );
+    pointer-events: none;
+}
+
+.card-parchment.small {
+    border-radius: 4px;
+}
+
+/* スートアイコン（CSS mask使用） */
+.card-suit-icon {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    z-index: 2;
+    transition: background-color 0.2s;
+}
+
+.card-suit-icon.top-left {
+    top: 18px;
+    left: 4px;
+}
+
+.card-suit-icon.bottom-right {
+    bottom: 4px;
+    right: 4px;
+    transform: rotate(180deg);
+}
+
+.card-suit-icon.center {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 28px;
+    height: 28px;
+}
+
+.card-suit-icon.center.large {
+    width: 50px;
+    height: 50px;
+}
+
+.card-suit-icon.small {
+    width: 8px;
+    height: 8px;
+}
+
+.card-suit-icon.small.top-left {
+    top: 14px;
+    left: 3px;
+}
+
+.card-suit-icon.small.center {
+    width: 20px;
+    height: 20px;
+}
+
+/* 絵札イラスト（A, J, Q, K） */
+.card-face-art {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 50px;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    z-index: 1;
+}
+
+.card-face-art.large {
+    width: 80px;
+    height: 100px;
+}
+
+.card-face-art.small {
+    width: 28px;
+    height: 35px;
+}
+
+/* 種族別アイコン・イラスト色 */
+.suit-human .card-suit-icon,
+.suit-human .card-face-art {
+    background-color: var(--race-human);
+}
+
+.suit-demon .card-suit-icon,
+.suit-demon .card-face-art {
+    background-color: var(--race-demon);
+}
+
+.suit-elf .card-suit-icon,
+.suit-elf .card-face-art {
+    background-color: var(--race-elf);
+}
+
+.suit-goblin .card-suit-icon,
+.suit-goblin .card-face-art {
+    background-color: var(--race-goblin);
+}
+
+/* ランク表示（コーナー配置） */
+.card-rank.top-left {
+    position: absolute;
+    top: 3px;
+    left: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    font-family: 'Cinzel', serif;
+    z-index: 2;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.card-rank.bottom-right {
+    position: absolute;
+    bottom: 3px;
+    right: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    font-family: 'Cinzel', serif;
+    z-index: 2;
+    transform: rotate(180deg);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.card-rank.small {
+    font-size: 0.6rem;
+}
+
+.card-rank.small.top-left {
+    top: 2px;
+    left: 3px;
+}
+
 /* ========== 手札カード（元サイズ） ========== */
 .cuttle-hand-card {
     position: absolute;
     width: 64px;
     height: 90px;
-    background: linear-gradient(180deg, #2a2535, #1a1825);
-    border: 2px solid rgba(201, 162, 39, 0.5);
+    background: transparent;
+    border: 2px solid rgba(80, 60, 40, 0.8);
     border-radius: 8px;
-    padding: 6px;
-    text-align: center;
     cursor: pointer;
     transform-origin: bottom center;
     transform: translateX(calc(-50% + var(--x-offset))) translateY(var(--y-offset)) rotate(var(--angle));
@@ -580,49 +790,50 @@
     left: 50%;
     bottom: 8px;
     box-shadow: -2px 3px 10px rgba(0, 0, 0, 0.5);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    /* z-indexはJS側で動的に設定（index + 51） */
-}
-
-.cuttle-hand-card .card-rank {
-    font-size: 1.3rem;
-    font-weight: 700;
-    color: #e8e0d4;
-    font-family: 'Cinzel', serif;
-}
-
-.cuttle-hand-card .card-suit {
-    font-size: 0.65rem;
-    color: #a89888;
-    margin-top: 2px;
+    overflow: hidden;
 }
 
 .cuttle-hand-card .card-effect {
-    font-size: 0.5rem;
-    color: #7a6a5a;
-    margin-top: 4px;
-    line-height: 1.2;
+    position: absolute;
+    bottom: 2px;
+    left: 2px;
+    right: 2px;
+    font-size: 0.45rem;
+    color: rgba(200, 180, 140, 0.7);
+    text-align: center;
+    line-height: 1.1;
+    z-index: 3;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
 }
 
-/* スート色 - ダークファンタジー */
-.cuttle-hand-card.suit-elf { border-color: #2d8a4e; background: linear-gradient(180deg, #1a3525, #0d1d15); }
-.cuttle-hand-card.suit-elf .card-rank { color: #a8e6a3; }
+/* スート色 - 枠線と発光 */
+.cuttle-hand-card.suit-elf { 
+    border-color: var(--race-elf); 
+    box-shadow: 0 0 8px var(--race-elf-glow), -2px 3px 10px rgba(0, 0, 0, 0.5);
+}
+.cuttle-hand-card.suit-elf .card-rank { color: #c9b860; }
 
-.cuttle-hand-card.suit-goblin { border-color: #8b2942; background: linear-gradient(180deg, #351a25, #1d0d15); }
-.cuttle-hand-card.suit-goblin .card-rank { color: #e6a3b3; }
+.cuttle-hand-card.suit-goblin { 
+    border-color: var(--race-goblin); 
+    box-shadow: 0 0 8px var(--race-goblin-glow), -2px 3px 10px rgba(0, 0, 0, 0.5);
+}
+.cuttle-hand-card.suit-goblin .card-rank { color: #6ab87a; }
 
-.cuttle-hand-card.suit-human { border-color: #3d6b99; background: linear-gradient(180deg, #1a2535, #0d1520); }
-.cuttle-hand-card.suit-human .card-rank { color: #a3c8e6; }
+.cuttle-hand-card.suit-human { 
+    border-color: var(--race-human); 
+    box-shadow: 0 0 8px var(--race-human-glow), -2px 3px 10px rgba(0, 0, 0, 0.5);
+}
+.cuttle-hand-card.suit-human .card-rank { color: #c96060; }
 
-.cuttle-hand-card.suit-demon { border-color: #6a2c91; background: linear-gradient(180deg, #2a1a35, #150d1d); }
-.cuttle-hand-card.suit-demon .card-rank { color: #c8a3e6; }
+.cuttle-hand-card.suit-demon { 
+    border-color: var(--race-demon); 
+    box-shadow: 0 0 8px var(--race-demon-glow), -2px 3px 10px rgba(0, 0, 0, 0.5);
+}
+.cuttle-hand-card.suit-demon .card-rank { color: #7090c0; }
 
 /* プレイ可能 */
 .cuttle-hand-card.playable {
-    box-shadow: 0 0 12px rgba(201, 162, 39, 0.5), 0 4px 12px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 0 15px rgba(201, 162, 39, 0.6), 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 /* ========== 閲覧モード オーバーレイ ========== */
@@ -657,52 +868,86 @@
 }
 
 .cuttle-preview-card {
+    position: relative;
     width: 180px;
     min-height: 250px;
-    background: linear-gradient(180deg, #2a2535, #1a1825);
-    border: 4px solid rgba(201, 162, 39, 0.6);
+    background: transparent;
+    border: 4px solid rgba(80, 60, 40, 0.8);
     border-radius: 16px;
-    padding: 20px;
-    text-align: center;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 30px rgba(201, 162, 39, 0.2);
+    overflow: hidden;
 }
 
-.cuttle-preview-card .preview-rank {
-    font-size: 3rem;
-    font-weight: 700;
-    margin-bottom: 8px;
-    font-family: 'Cinzel', serif;
-    color: #e8e0d4;
+.cuttle-preview-card .card-parchment {
+    border-radius: 12px;
 }
 
-.cuttle-preview-card .preview-suit {
-    font-size: 1.2rem;
-    color: #a89888;
-    margin-bottom: 12px;
+.cuttle-preview-card .card-rank.top-left {
+    top: 8px;
+    left: 12px;
+    font-size: 1.5rem;
+}
+
+.cuttle-preview-card .card-rank.bottom-right {
+    bottom: 8px;
+    right: 12px;
+    font-size: 1.5rem;
+}
+
+.cuttle-preview-card .card-suit-icon.top-left {
+    top: 35px;
+    left: 12px;
+    width: 24px;
+    height: 24px;
+}
+
+.cuttle-preview-card .card-suit-icon.bottom-right {
+    bottom: 12px;
+    right: 12px;
+    width: 24px;
+    height: 24px;
 }
 
 .cuttle-preview-card .preview-effect {
-    font-size: 0.85rem;
-    color: #c8b8a8;
-    line-height: 1.4;
-    padding: 10px;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 8px;
-    border: 1px solid rgba(201, 162, 39, 0.2);
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    right: 10px;
+    font-size: 0.75rem;
+    color: rgba(200, 180, 140, 0.9);
+    line-height: 1.3;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 6px;
+    border: 1px solid rgba(120, 90, 50, 0.4);
+    text-align: center;
+    z-index: 4;
 }
 
-/* スート色 - ダークファンタジー */
-.cuttle-preview-card.suit-elf { border-color: #2d8a4e; background: linear-gradient(180deg, #1a3525, #0d1d15); }
-.cuttle-preview-card.suit-elf .preview-rank { color: #a8e6a3; }
+/* スート色 - 枠線と発光 */
+.cuttle-preview-card.suit-elf { 
+    border-color: var(--race-elf); 
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 40px var(--race-elf-glow);
+}
+.cuttle-preview-card.suit-elf .card-rank { color: #c9b860; }
 
-.cuttle-preview-card.suit-goblin { border-color: #8b2942; background: linear-gradient(180deg, #351a25, #1d0d15); }
-.cuttle-preview-card.suit-goblin .preview-rank { color: #e6a3b3; }
+.cuttle-preview-card.suit-goblin { 
+    border-color: var(--race-goblin); 
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 40px var(--race-goblin-glow);
+}
+.cuttle-preview-card.suit-goblin .card-rank { color: #6ab87a; }
 
-.cuttle-preview-card.suit-human { border-color: #3d6b99; background: linear-gradient(180deg, #1a2535, #0d1520); }
-.cuttle-preview-card.suit-human .preview-rank { color: #a3c8e6; }
+.cuttle-preview-card.suit-human { 
+    border-color: var(--race-human); 
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 40px var(--race-human-glow);
+}
+.cuttle-preview-card.suit-human .card-rank { color: #c96060; }
 
-.cuttle-preview-card.suit-demon { border-color: #6a2c91; background: linear-gradient(180deg, #2a1a35, #150d1d); }
-.cuttle-preview-card.suit-demon .preview-rank { color: #c8a3e6; }
+.cuttle-preview-card.suit-demon { 
+    border-color: var(--race-demon); 
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 40px var(--race-demon-glow);
+}
+.cuttle-preview-card.suit-demon .card-rank { color: #7090c0; }
 
 /* ========== 閲覧モード 手札 ========== */
 /* 閲覧モード時は手札がステータスバーに重なる（化学式TCG準拠） */
@@ -724,20 +969,55 @@
 .cuttle-browse-card {
     position: absolute;
     bottom: 25px;
-    width: 100px;   /* 閲覧モード用サイズ */
+    width: 100px;
     height: 140px;
-    background: linear-gradient(180deg, #2a2535, #1a1825);
-    border: 2px solid rgba(201, 162, 39, 0.5);
+    background: transparent;
+    border: 2px solid rgba(80, 60, 40, 0.8);
     border-radius: 10px;
-    padding: 10px;
-    text-align: center;
     transition: transform 0.1s ease-out, box-shadow 0.1s;
     box-shadow: -2px 4px 15px rgba(0, 0, 0, 0.5);
     transform-origin: bottom center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    overflow: hidden;
+}
+
+.cuttle-browse-card .card-parchment {
+    border-radius: 8px;
+}
+
+.cuttle-browse-card .card-rank.top-left {
+    top: 5px;
+    left: 6px;
+    font-size: 1rem;
+}
+
+.cuttle-browse-card .card-rank.bottom-right {
+    bottom: 5px;
+    right: 6px;
+    font-size: 1rem;
+}
+
+.cuttle-browse-card .card-suit-icon.top-left {
+    top: 22px;
+    left: 6px;
+    width: 16px;
+    height: 16px;
+}
+
+.cuttle-browse-card .card-suit-icon.bottom-right {
+    bottom: 6px;
+    right: 6px;
+    width: 16px;
+    height: 16px;
+}
+
+.cuttle-browse-card .card-suit-icon.center {
+    width: 36px;
+    height: 36px;
+}
+
+.cuttle-browse-card .card-face-art {
+    width: 55px;
+    height: 70px;
 }
 
 .cuttle-browse-card.selected {
@@ -745,76 +1025,109 @@
     box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6), 0 0 20px rgba(201, 162, 39, 0.3);
 }
 
-.cuttle-browse-card .browse-rank {
-    font-size: 2rem;
-    font-weight: 700;
-    font-family: 'Cinzel', serif;
-    color: #e8e0d4;
+/* スート色 - 枠線と発光 */
+.cuttle-browse-card.suit-elf { 
+    border-color: var(--race-elf); 
+    box-shadow: 0 0 12px var(--race-elf-glow), -2px 4px 15px rgba(0, 0, 0, 0.5);
 }
+.cuttle-browse-card.suit-elf .card-rank { color: #c9b860; }
 
-.cuttle-browse-card .browse-suit {
-    font-size: 1rem;
-    color: #a89888;
-    margin-top: 6px;
+.cuttle-browse-card.suit-goblin { 
+    border-color: var(--race-goblin); 
+    box-shadow: 0 0 12px var(--race-goblin-glow), -2px 4px 15px rgba(0, 0, 0, 0.5);
 }
+.cuttle-browse-card.suit-goblin .card-rank { color: #6ab87a; }
 
-/* スート色 - ダークファンタジー */
-.cuttle-browse-card.suit-elf { border-color: #2d8a4e; background: linear-gradient(180deg, #1a3525, #0d1d15); }
-.cuttle-browse-card.suit-elf .browse-rank { color: #a8e6a3; }
+.cuttle-browse-card.suit-human { 
+    border-color: var(--race-human); 
+    box-shadow: 0 0 12px var(--race-human-glow), -2px 4px 15px rgba(0, 0, 0, 0.5);
+}
+.cuttle-browse-card.suit-human .card-rank { color: #c96060; }
 
-.cuttle-browse-card.suit-goblin { border-color: #8b2942; background: linear-gradient(180deg, #351a25, #1d0d15); }
-.cuttle-browse-card.suit-goblin .browse-rank { color: #e6a3b3; }
-
-.cuttle-browse-card.suit-human { border-color: #3d6b99; background: linear-gradient(180deg, #1a2535, #0d1520); }
-.cuttle-browse-card.suit-human .browse-rank { color: #a3c8e6; }
-
-.cuttle-browse-card.suit-demon { border-color: #6a2c91; background: linear-gradient(180deg, #2a1a35, #150d1d); }
-.cuttle-browse-card.suit-demon .browse-rank { color: #c8a3e6; }
+.cuttle-browse-card.suit-demon { 
+    border-color: var(--race-demon); 
+    box-shadow: 0 0 12px var(--race-demon-glow), -2px 4px 15px rgba(0, 0, 0, 0.5);
+}
+.cuttle-browse-card.suit-demon .card-rank { color: #7090c0; }
 
 /* ========== ドラッグカード ========== */
 .cuttle-drag {
     position: fixed;
     width: 100px;
     height: 140px;
-    background: linear-gradient(180deg, #2a2535, #1a1825);
+    background: transparent;
     border: 3px solid #c9a227;
     border-radius: 12px;
-    padding: 10px;
-    text-align: center;
     z-index: 10003;
     pointer-events: none;
     box-shadow: 0 20px 50px rgba(201, 162, 39, 0.4);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    overflow: hidden;
 }
 
-.cuttle-drag .drag-rank {
-    font-size: 2.2rem;
-    font-weight: 700;
-    font-family: 'Cinzel', serif;
-    color: #e8e0d4;
+.cuttle-drag .card-parchment {
+    border-radius: 9px;
 }
 
-.cuttle-drag .drag-suit {
+.cuttle-drag .card-rank.top-left {
+    top: 5px;
+    left: 6px;
     font-size: 1rem;
-    color: #a89888;
-    margin-top: 6px;
 }
 
-/* スート色 - ダークファンタジー */
-.cuttle-drag.suit-elf { border-color: #2d8a4e; background: linear-gradient(180deg, #1a3525, #0d1d15); }
-.cuttle-drag.suit-elf .drag-rank { color: #a8e6a3; }
+.cuttle-drag .card-rank.bottom-right {
+    bottom: 5px;
+    right: 6px;
+    font-size: 1rem;
+}
 
-.cuttle-drag.suit-goblin { border-color: #8b2942; background: linear-gradient(180deg, #351a25, #1d0d15); }
-.cuttle-drag.suit-goblin .drag-rank { color: #e6a3b3; }
+.cuttle-drag .card-suit-icon.top-left {
+    top: 22px;
+    left: 6px;
+    width: 16px;
+    height: 16px;
+}
 
-.cuttle-drag.suit-human { border-color: #3d6b99; background: linear-gradient(180deg, #1a2535, #0d1520); }
-.cuttle-drag.suit-human .drag-rank { color: #a3c8e6; }
+.cuttle-drag .card-suit-icon.bottom-right {
+    bottom: 6px;
+    right: 6px;
+    width: 16px;
+    height: 16px;
+}
 
-.cuttle-drag.suit-demon { border-color: #6a2c91; background: linear-gradient(180deg, #2a1a35, #150d1d); }
-.cuttle-drag.suit-demon .drag-rank { color: #c8a3e6; }
+.cuttle-drag .card-suit-icon.center {
+    width: 36px;
+    height: 36px;
+}
+
+.cuttle-drag .card-face-art {
+    width: 55px;
+    height: 70px;
+}
+
+/* スート色 - 枠線と発光 */
+.cuttle-drag.suit-elf { 
+    border-color: var(--race-elf); 
+    box-shadow: 0 20px 50px rgba(122, 106, 37, 0.5);
+}
+.cuttle-drag.suit-elf .card-rank { color: #c9b860; }
+
+.cuttle-drag.suit-goblin { 
+    border-color: var(--race-goblin); 
+    box-shadow: 0 20px 50px rgba(45, 90, 61, 0.5);
+}
+.cuttle-drag.suit-goblin .card-rank { color: #6ab87a; }
+
+.cuttle-drag.suit-human { 
+    border-color: var(--race-human); 
+    box-shadow: 0 20px 50px rgba(139, 53, 53, 0.5);
+}
+.cuttle-drag.suit-human .card-rank { color: #c96060; }
+
+.cuttle-drag.suit-demon { 
+    border-color: var(--race-demon); 
+    box-shadow: 0 20px 50px rgba(53, 74, 122, 0.5);
+}
+.cuttle-drag.suit-demon .card-rank { color: #7090c0; }
 
 /* ========== ドロップエリアハイライト ========== */
 .cuttle-player-points-area.drop-highlight,

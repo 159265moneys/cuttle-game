@@ -31,6 +31,30 @@ const RACE_NAMES: Record<string, string> = {
   Demon: 'デーモン',
 };
 
+// 種族コード（スプライト用）
+const RACE_CODES: Record<string, string> = {
+  Elf: 'e',
+  Goblin: 'g',
+  Human: 'h',
+  Demon: 'd',
+};
+
+// 絵札かどうか判定
+const isFaceCard = (rank: string): boolean => {
+  return ['A', 'J', 'Q', 'K'].includes(rank);
+};
+
+// スプライトパス生成
+const getSuitSpritePath = (race: string): string => {
+  return `/sprite/suit/${race.toLowerCase()}.png`;
+};
+
+const getFaceSpritePath = (race: string, rank: string): string => {
+  const raceCode = RACE_CODES[race] || 'h';
+  const rankCode = rank.toLowerCase();
+  return `/sprite/ajqk/${raceCode}${rankCode}.png`;
+};
+
 // カード枚数から表示する重なり枚数を計算
 function getStackCount(count: number): number {
   if (count <= 1) return count;
@@ -440,13 +464,49 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
           '--angle': `${angle}deg`,
           '--x-offset': `${xOffset}px`,
           '--y-offset': `${yOffset}px`,
-          zIndex: 51 + index, // 手札エリア(50)より上、右のカードが上に
+          zIndex: 51 + index,
         } as React.CSSProperties}
         onTouchStart={(e) => handleTouchStart(e, index)}
         onMouseDown={(e) => handleTouchStart(e, index)}
       >
-        <div className="card-rank">{card.rank}</div>
-        <div className="card-suit">{RACE_NAMES[card.race]}</div>
+        {/* カード背景 - 羊皮紙テクスチャ */}
+        <div className="card-parchment" />
+        
+        {/* 絵札イラスト（A,J,Q,K） */}
+        {isFaceCard(card.rank) && (
+          <div 
+            className="card-face-art"
+            style={{ maskImage: `url(${getFaceSpritePath(card.race, card.rank)})` }}
+          />
+        )}
+        
+        {/* スートアイコン - 左上 */}
+        <div 
+          className="card-suit-icon top-left"
+          style={{ maskImage: `url(${getSuitSpritePath(card.race)})` }}
+        />
+        
+        {/* スートアイコン - 右下（反転） */}
+        <div 
+          className="card-suit-icon bottom-right"
+          style={{ maskImage: `url(${getSuitSpritePath(card.race)})` }}
+        />
+        
+        {/* ランク表示 - 左上 */}
+        <div className="card-rank top-left">{card.rank}</div>
+        
+        {/* ランク表示 - 右下（反転） */}
+        <div className="card-rank bottom-right">{card.rank}</div>
+        
+        {/* 数字カードの中央スートアイコン */}
+        {!isFaceCard(card.rank) && (
+          <div 
+            className="card-suit-icon center"
+            style={{ maskImage: `url(${getSuitSpritePath(card.race)})` }}
+          />
+        )}
+        
+        {/* 効果テキスト */}
         <div className="card-effect">{getCardEffect(card).slice(0, 30)}</div>
       </div>
     );
@@ -492,8 +552,29 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
           zIndex: isSelected ? 100 : index + 1,
         }}
       >
-        <div className="browse-rank">{card.rank}</div>
-        <div className="browse-suit">{RACE_NAMES[card.race]}</div>
+        <div className="card-parchment" />
+        {isFaceCard(card.rank) && (
+          <div 
+            className="card-face-art"
+            style={{ maskImage: `url(${getFaceSpritePath(card.race, card.rank)})` }}
+          />
+        )}
+        <div 
+          className="card-suit-icon top-left"
+          style={{ maskImage: `url(${getSuitSpritePath(card.race)})` }}
+        />
+        <div 
+          className="card-suit-icon bottom-right"
+          style={{ maskImage: `url(${getSuitSpritePath(card.race)})` }}
+        />
+        <div className="card-rank top-left">{card.rank}</div>
+        <div className="card-rank bottom-right">{card.rank}</div>
+        {!isFaceCard(card.rank) && (
+          <div 
+            className="card-suit-icon center"
+            style={{ maskImage: `url(${getSuitSpritePath(card.race)})` }}
+          />
+        )}
       </div>
     );
   };
@@ -506,8 +587,29 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
     
     return (
       <div className={`cuttle-preview-card ${getSuitClass(card)}`}>
-        <div className="preview-rank">{card.rank}</div>
-        <div className="preview-suit">{RACE_NAMES[card.race]}</div>
+        <div className="card-parchment" />
+        {isFaceCard(card.rank) && (
+          <div 
+            className="card-face-art large"
+            style={{ maskImage: `url(${getFaceSpritePath(card.race, card.rank)})` }}
+          />
+        )}
+        <div 
+          className="card-suit-icon top-left"
+          style={{ maskImage: `url(${getSuitSpritePath(card.race)})` }}
+        />
+        <div 
+          className="card-suit-icon bottom-right"
+          style={{ maskImage: `url(${getSuitSpritePath(card.race)})` }}
+        />
+        <div className="card-rank top-left">{card.rank}</div>
+        <div className="card-rank bottom-right">{card.rank}</div>
+        {!isFaceCard(card.rank) && (
+          <div 
+            className="card-suit-icon center large"
+            style={{ maskImage: `url(${getSuitSpritePath(card.race)})` }}
+          />
+        )}
         <div className="preview-effect">{getCardEffect(card)}</div>
       </div>
     );
@@ -546,8 +648,24 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
                 }
               }}
             >
-              <div className="card-rank">{fc.card.rank}</div>
-              <div className="card-suit">{RACE_NAMES[fc.card.race]}</div>
+              <div className="card-parchment small" />
+              {isFaceCard(fc.card.rank) && (
+                <div 
+                  className="card-face-art small"
+                  style={{ maskImage: `url(${getFaceSpritePath(fc.card.race, fc.card.rank)})` }}
+                />
+              )}
+              <div 
+                className="card-suit-icon top-left small"
+                style={{ maskImage: `url(${getSuitSpritePath(fc.card.race)})` }}
+              />
+              <div className="card-rank top-left small">{fc.card.rank}</div>
+              {!isFaceCard(fc.card.rank) && (
+                <div 
+                  className="card-suit-icon center small"
+                  style={{ maskImage: `url(${getSuitSpritePath(fc.card.race)})` }}
+                />
+              )}
               {fc.card.value > 0 && <div className="card-value">{fc.card.value}pt</div>}
             </div>
           );
@@ -794,18 +912,42 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
       </div>
       
       {/* ドラッグカード */}
-      {mode === 'dragging' && selectedIndex >= 0 && player.hand[selectedIndex] && (
-        <div
-          className={`cuttle-drag ${getSuitClass(player.hand[selectedIndex])}`}
-          style={{
-            left: touchCurrent.x - 50,  // 100px / 2
-            top: touchCurrent.y - 70,   // 140px / 2
-          }}
-        >
-          <div className="drag-rank">{player.hand[selectedIndex].rank}</div>
-          <div className="drag-suit">{RACE_NAMES[player.hand[selectedIndex].race]}</div>
-        </div>
-      )}
+      {mode === 'dragging' && selectedIndex >= 0 && player.hand[selectedIndex] && (() => {
+        const dragCard = player.hand[selectedIndex];
+        return (
+          <div
+            className={`cuttle-drag ${getSuitClass(dragCard)}`}
+            style={{
+              left: touchCurrent.x - 50,
+              top: touchCurrent.y - 70,
+            }}
+          >
+            <div className="card-parchment" />
+            {isFaceCard(dragCard.rank) && (
+              <div 
+                className="card-face-art"
+                style={{ maskImage: `url(${getFaceSpritePath(dragCard.race, dragCard.rank)})` }}
+              />
+            )}
+            <div 
+              className="card-suit-icon top-left"
+              style={{ maskImage: `url(${getSuitSpritePath(dragCard.race)})` }}
+            />
+            <div 
+              className="card-suit-icon bottom-right"
+              style={{ maskImage: `url(${getSuitSpritePath(dragCard.race)})` }}
+            />
+            <div className="card-rank top-left">{dragCard.rank}</div>
+            <div className="card-rank bottom-right">{dragCard.rank}</div>
+            {!isFaceCard(dragCard.rank) && (
+              <div 
+                className="card-suit-icon center"
+                style={{ maskImage: `url(${getSuitSpritePath(dragCard.race)})` }}
+              />
+            )}
+          </div>
+        );
+      })()}
       
       {/* ゲームオーバー */}
       {isGameOver && (
