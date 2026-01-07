@@ -44,6 +44,91 @@ const isFaceCard = (rank: string): boolean => {
   return ['A', 'J', 'Q', 'K'].includes(rank);
 };
 
+// 数字カードのスート配置（トランプ準拠）
+// x: 0=左, 50=中央, 100=右 (%)
+// y: 0=上, 25=上中, 50=中央, 75=下中, 100=下 (%)
+// inverted: true=180度回転
+interface PipPosition {
+  x: number;
+  y: number;
+  inverted?: boolean;
+}
+
+const PIP_LAYOUTS: Record<string, PipPosition[]> = {
+  '2': [
+    { x: 50, y: 15 },
+    { x: 50, y: 85, inverted: true },
+  ],
+  '3': [
+    { x: 50, y: 15 },
+    { x: 50, y: 50 },
+    { x: 50, y: 85, inverted: true },
+  ],
+  '4': [
+    { x: 25, y: 15 },
+    { x: 75, y: 15 },
+    { x: 25, y: 85, inverted: true },
+    { x: 75, y: 85, inverted: true },
+  ],
+  '5': [
+    { x: 25, y: 15 },
+    { x: 75, y: 15 },
+    { x: 50, y: 50 },
+    { x: 25, y: 85, inverted: true },
+    { x: 75, y: 85, inverted: true },
+  ],
+  '6': [
+    { x: 25, y: 15 },
+    { x: 75, y: 15 },
+    { x: 25, y: 50 },
+    { x: 75, y: 50 },
+    { x: 25, y: 85, inverted: true },
+    { x: 75, y: 85, inverted: true },
+  ],
+  '7': [
+    { x: 25, y: 15 },
+    { x: 75, y: 15 },
+    { x: 50, y: 32 },
+    { x: 25, y: 50 },
+    { x: 75, y: 50 },
+    { x: 25, y: 85, inverted: true },
+    { x: 75, y: 85, inverted: true },
+  ],
+  '8': [
+    { x: 25, y: 15 },
+    { x: 75, y: 15 },
+    { x: 50, y: 32 },
+    { x: 25, y: 50 },
+    { x: 75, y: 50 },
+    { x: 50, y: 68, inverted: true },
+    { x: 25, y: 85, inverted: true },
+    { x: 75, y: 85, inverted: true },
+  ],
+  '9': [
+    { x: 25, y: 12 },
+    { x: 75, y: 12 },
+    { x: 25, y: 36 },
+    { x: 75, y: 36 },
+    { x: 50, y: 50 },
+    { x: 25, y: 64, inverted: true },
+    { x: 75, y: 64, inverted: true },
+    { x: 25, y: 88, inverted: true },
+    { x: 75, y: 88, inverted: true },
+  ],
+  '10': [
+    { x: 25, y: 12 },
+    { x: 75, y: 12 },
+    { x: 50, y: 24 },
+    { x: 25, y: 36 },
+    { x: 75, y: 36 },
+    { x: 25, y: 64, inverted: true },
+    { x: 75, y: 64, inverted: true },
+    { x: 50, y: 76, inverted: true },
+    { x: 25, y: 88, inverted: true },
+    { x: 75, y: 88, inverted: true },
+  ],
+};
+
 // ベースURL（GitHub Pages対応）
 const BASE_URL = import.meta.env.BASE_URL || '/';
 
@@ -458,6 +543,8 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
     const xOffset = offset * spacing;
     const yOffset = Math.abs(offset) * 5;
     
+    const pipLayout = PIP_LAYOUTS[card.rank];
+    
     return (
       <div
         key={`${card.rank}-${card.race}-${index}`}
@@ -483,15 +570,15 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
           />
         )}
         
-        {/* スートアイコン - 左上 */}
+        {/* スートアイコン - 左上（コーナー） */}
         <div 
-          className="card-suit-icon top-left"
+          className="card-suit-icon corner top-left"
           style={{ maskImage: `url(${getSuitSpritePath(card.race)})` }}
         />
         
-        {/* スートアイコン - 右下（反転） */}
+        {/* スートアイコン - 右下（コーナー、反転） */}
         <div 
-          className="card-suit-icon bottom-right"
+          className="card-suit-icon corner bottom-right"
           style={{ maskImage: `url(${getSuitSpritePath(card.race)})` }}
         />
         
@@ -501,16 +588,22 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
         {/* ランク表示 - 右下（反転） */}
         <div className="card-rank bottom-right">{card.rank}</div>
         
-        {/* 数字カードの中央スートアイコン */}
-        {!isFaceCard(card.rank) && (
-          <div 
-            className="card-suit-icon center"
-            style={{ maskImage: `url(${getSuitSpritePath(card.race)})` }}
-          />
+        {/* 数字カードのスート配置（トランプ準拠） */}
+        {pipLayout && (
+          <div className="card-pips">
+            {pipLayout.map((pip, i) => (
+              <div
+                key={i}
+                className={`card-pip ${pip.inverted ? 'inverted' : ''}`}
+                style={{
+                  left: `${pip.x}%`,
+                  top: `${pip.y}%`,
+                  maskImage: `url(${getSuitSpritePath(card.race)})`,
+                }}
+              />
+            ))}
+          </div>
         )}
-        
-        {/* 効果テキスト */}
-        <div className="card-effect">{getCardEffect(card).slice(0, 30)}</div>
       </div>
     );
   };
@@ -544,6 +637,8 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
     
     const isSelected = index === selectedIndex;
     
+    const pipLayout = PIP_LAYOUTS[card.rank];
+    
     return (
       <div
         key={`browse-${card.rank}-${card.race}-${index}`}
@@ -563,20 +658,29 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
           />
         )}
         <div 
-          className="card-suit-icon top-left"
+          className="card-suit-icon corner top-left"
           style={{ maskImage: `url(${getSuitSpritePath(card.race)})` }}
         />
         <div 
-          className="card-suit-icon bottom-right"
+          className="card-suit-icon corner bottom-right"
           style={{ maskImage: `url(${getSuitSpritePath(card.race)})` }}
         />
         <div className="card-rank top-left">{card.rank}</div>
         <div className="card-rank bottom-right">{card.rank}</div>
-        {!isFaceCard(card.rank) && (
-          <div 
-            className="card-suit-icon center"
-            style={{ maskImage: `url(${getSuitSpritePath(card.race)})` }}
-          />
+        {pipLayout && (
+          <div className="card-pips">
+            {pipLayout.map((pip, i) => (
+              <div
+                key={i}
+                className={`card-pip ${pip.inverted ? 'inverted' : ''}`}
+                style={{
+                  left: `${pip.x}%`,
+                  top: `${pip.y}%`,
+                  maskImage: `url(${getSuitSpritePath(card.race)})`,
+                }}
+              />
+            ))}
+          </div>
         )}
       </div>
     );
@@ -587,33 +691,51 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
     if (selectedIndex < 0 || !player.hand[selectedIndex]) return null;
     
     const card = player.hand[selectedIndex];
+    const pipLayout = PIP_LAYOUTS[card.rank];
     
     return (
-      <div className={`cuttle-preview-card ${getSuitClass(card)}`}>
-        <div className="card-parchment" />
-        {isFaceCard(card.rank) && (
+      <div className="cuttle-preview-container">
+        {/* カード本体 */}
+        <div className={`cuttle-preview-card ${getSuitClass(card)}`}>
+          <div className="card-parchment" />
+          {isFaceCard(card.rank) && (
+            <div 
+              className="card-face-art large"
+              style={{ maskImage: `url(${getFaceSpritePath(card.race, card.rank)})` }}
+            />
+          )}
           <div 
-            className="card-face-art large"
-            style={{ maskImage: `url(${getFaceSpritePath(card.race, card.rank)})` }}
-          />
-        )}
-        <div 
-          className="card-suit-icon top-left"
-          style={{ maskImage: `url(${getSuitSpritePath(card.race)})` }}
-        />
-        <div 
-          className="card-suit-icon bottom-right"
-          style={{ maskImage: `url(${getSuitSpritePath(card.race)})` }}
-        />
-        <div className="card-rank top-left">{card.rank}</div>
-        <div className="card-rank bottom-right">{card.rank}</div>
-        {!isFaceCard(card.rank) && (
-          <div 
-            className="card-suit-icon center large"
+            className="card-suit-icon corner top-left large"
             style={{ maskImage: `url(${getSuitSpritePath(card.race)})` }}
           />
-        )}
-        <div className="preview-effect">{getCardEffect(card)}</div>
+          <div 
+            className="card-suit-icon corner bottom-right large"
+            style={{ maskImage: `url(${getSuitSpritePath(card.race)})` }}
+          />
+          <div className="card-rank top-left">{card.rank}</div>
+          <div className="card-rank bottom-right">{card.rank}</div>
+          {pipLayout && (
+            <div className="card-pips large">
+              {pipLayout.map((pip, i) => (
+                <div
+                  key={i}
+                  className={`card-pip large ${pip.inverted ? 'inverted' : ''}`}
+                  style={{
+                    left: `${pip.x}%`,
+                    top: `${pip.y}%`,
+                    maskImage: `url(${getSuitSpritePath(card.race)})`,
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+        
+        {/* 効果テキストボックス（カードの下） */}
+        <div className="preview-effect-box">
+          <div className="effect-title">{card.rank} - {RACE_NAMES[card.race]}</div>
+          <div className="effect-text">{getCardEffect(card)}</div>
+        </div>
       </div>
     );
   };
@@ -947,6 +1069,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
       {/* ドラッグカード */}
       {mode === 'dragging' && selectedIndex >= 0 && player.hand[selectedIndex] && (() => {
         const dragCard = player.hand[selectedIndex];
+        const pipLayout = PIP_LAYOUTS[dragCard.rank];
         return (
           <div
             className={`cuttle-drag ${getSuitClass(dragCard)}`}
@@ -963,20 +1086,29 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
               />
             )}
             <div 
-              className="card-suit-icon top-left"
+              className="card-suit-icon corner top-left"
               style={{ maskImage: `url(${getSuitSpritePath(dragCard.race)})` }}
             />
             <div 
-              className="card-suit-icon bottom-right"
+              className="card-suit-icon corner bottom-right"
               style={{ maskImage: `url(${getSuitSpritePath(dragCard.race)})` }}
             />
             <div className="card-rank top-left">{dragCard.rank}</div>
             <div className="card-rank bottom-right">{dragCard.rank}</div>
-            {!isFaceCard(dragCard.rank) && (
-              <div 
-                className="card-suit-icon center"
-                style={{ maskImage: `url(${getSuitSpritePath(dragCard.race)})` }}
-              />
+            {pipLayout && (
+              <div className="card-pips">
+                {pipLayout.map((pip, i) => (
+                  <div
+                    key={i}
+                    className={`card-pip ${pip.inverted ? 'inverted' : ''}`}
+                    style={{
+                      left: `${pip.x}%`,
+                      top: `${pip.y}%`,
+                      maskImage: `url(${getSuitSpritePath(dragCard.race)})`,
+                    }}
+                  />
+                ))}
+              </div>
             )}
           </div>
         );

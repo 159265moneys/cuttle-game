@@ -772,8 +772,6 @@
 /* スートアイコン（CSS mask使用） */
 .card-suit-icon {
     position: absolute;
-    width: 12px;
-    height: 12px;
     -webkit-mask-size: contain;
     mask-size: contain;
     -webkit-mask-repeat: no-repeat;
@@ -781,26 +779,91 @@
     -webkit-mask-position: center;
     mask-position: center;
     z-index: 2;
-    transition: background-color 0.2s;
 }
 
-.card-suit-icon.top-left {
-    top: 18px;
-    left: 4px;
+/* コーナーアイコン（ランクの下） */
+.card-suit-icon.corner {
+    width: 10px;
+    height: 10px;
 }
 
-.card-suit-icon.bottom-right {
-    bottom: 4px;
-    right: 4px;
+.card-suit-icon.corner.top-left {
+    top: 17px;
+    left: 5px;
+}
+
+.card-suit-icon.corner.bottom-right {
+    bottom: 5px;
+    right: 5px;
     transform: rotate(180deg);
 }
 
-.card-suit-icon.center {
-    top: 50%;
-    left: 50%;
+.card-suit-icon.corner.large {
+    width: 18px;
+    height: 18px;
+}
+
+.card-suit-icon.corner.large.top-left {
+    top: 32px;
+    left: 10px;
+}
+
+.card-suit-icon.corner.large.bottom-right {
+    bottom: 10px;
+    right: 10px;
+}
+
+/* フィールドカード用の小さいコーナーアイコン */
+.card-suit-icon.corner.small {
+    width: 7px;
+    height: 7px;
+}
+
+.card-suit-icon.corner.small.top-left {
+    top: 13px;
+    left: 3px;
+}
+
+/* ========================================
+   カード中央のスート配置（トランプ準拠）
+   ======================================== */
+
+.card-pips {
+    position: absolute;
+    top: 15%;
+    left: 15%;
+    right: 15%;
+    bottom: 15%;
+    z-index: 1;
+}
+
+.card-pips.large {
+    top: 18%;
+    left: 18%;
+    right: 18%;
+    bottom: 18%;
+}
+
+.card-pip {
+    position: absolute;
+    width: 11px;
+    height: 11px;
     transform: translate(-50%, -50%);
-    width: 28px;
-    height: 28px;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+}
+
+.card-pip.inverted {
+    transform: translate(-50%, -50%) rotate(180deg);
+}
+
+.card-pip.large {
+    width: 22px;
+    height: 22px;
 }
 
 .card-suit-icon.center.large {
@@ -922,18 +985,7 @@
     overflow: hidden;
 }
 
-.cuttle-hand-card .card-effect {
-    position: absolute;
-    bottom: 2px;
-    left: 2px;
-    right: 2px;
-    font-size: 0.45rem;
-    color: rgba(200, 180, 140, 0.7);
-    text-align: center;
-    line-height: 1.1;
-    z-index: 3;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
-}
+/* card-effect removed - effects shown in preview box only */
 
 /* スート色 - 枠線と発光 */
 .cuttle-hand-card.suit-elf { 
@@ -996,57 +1048,68 @@
     display: block;
 }
 
+/* プレビューコンテナ（カード＋効果ボックス） */
+.cuttle-preview-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
 .cuttle-preview-card {
     position: relative;
-    width: 180px;
-    min-height: 250px;
+    width: 140px;
+    height: 196px;
     background: transparent;
-    border: 4px solid rgba(80, 60, 40, 0.8);
-    border-radius: 16px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 30px rgba(201, 162, 39, 0.2);
+    border: 3px solid rgba(80, 60, 40, 0.8);
+    border-radius: 12px;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7), 0 0 25px rgba(201, 162, 39, 0.2);
     overflow: hidden;
+    flex-shrink: 0;
 }
 
 .cuttle-preview-card .card-parchment {
-    border-radius: 12px;
+    border-radius: 9px;
 }
 
 .cuttle-preview-card .card-rank.top-left {
-    top: 8px;
-    left: 12px;
-    font-size: 1.5rem;
+    top: 6px;
+    left: 8px;
+    font-size: 1.2rem;
 }
 
 .cuttle-preview-card .card-rank.bottom-right {
-    bottom: 8px;
-    right: 12px;
-    font-size: 1.5rem;
+    bottom: 6px;
+    right: 8px;
+    font-size: 1.2rem;
 }
 
-.cuttle-preview-card .card-suit-icon.top-left {
-    top: 35px;
-    left: 12px;
-    width: 24px;
-    height: 24px;
+/* 効果テキストボックス（カードの下） */
+.preview-effect-box {
+    width: 160px;
+    background: linear-gradient(180deg, rgba(30, 25, 20, 0.95), rgba(20, 15, 10, 0.95));
+    border: 2px solid rgba(120, 90, 50, 0.6);
+    border-radius: 8px;
+    padding: 10px 12px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
 }
 
-.cuttle-preview-card .card-suit-icon.bottom-right {
-    bottom: 12px;
-    right: 12px;
-    width: 24px;
-    height: 24px;
+.preview-effect-box .effect-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #c9a227;
+    margin-bottom: 6px;
+    text-align: center;
+    font-family: 'Cinzel', serif;
+    border-bottom: 1px solid rgba(120, 90, 50, 0.4);
+    padding-bottom: 5px;
 }
 
-.cuttle-preview-card .preview-effect {
-    position: absolute;
-    bottom: 10px;
-    left: 10px;
-    right: 10px;
+.preview-effect-box .effect-text {
     font-size: 0.75rem;
-    color: rgba(200, 180, 140, 0.9);
-    line-height: 1.3;
-    padding: 8px;
-    background: rgba(0, 0, 0, 0.5);
+    color: rgba(220, 200, 160, 0.95);
+    line-height: 1.4;
+    text-align: center;
     border-radius: 6px;
     border: 1px solid rgba(120, 90, 50, 0.4);
     text-align: center;
