@@ -227,6 +227,12 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   const logIdRef = useRef(0);
   const logContainerRef = useRef<HTMLDivElement>(null);
   
+  // パーティクルエフェクト用
+  const [particles, setParticles] = useState<{id: number; target: 'player' | 'enemy'; x: number; y: number}[]>([]);
+  const particleIdRef = useRef(0);
+  const playerIconRef = useRef<HTMLDivElement>(null);
+  const enemyIconRef = useRef<HTMLDivElement>(null);
+  
   // refs
   const screenRef = useRef<HTMLDivElement>(null);
   const playerPointsRef = useRef<HTMLDivElement>(null);
@@ -237,6 +243,73 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   
   const player = gameState.player1;
   const enemy = gameState.player2;
+  
+  // パーティクル生成関数
+  type ParticleData = {id: number; target: 'player' | 'enemy'; x: number; y: number};
+  const spawnParticles = useCallback((target: 'player' | 'enemy', startX: number, startY: number) => {
+    const newParticles: ParticleData[] = [];
+    for (let i = 0; i < 8; i++) {
+      particleIdRef.current += 1;
+      newParticles.push({
+        id: particleIdRef.current,
+        target,
+        x: startX + (Math.random() - 0.5) * 60,
+        y: startY + (Math.random() - 0.5) * 40,
+      });
+    }
+    setParticles(prev => [...prev, ...newParticles]);
+    // 1秒後にパーティクルを削除
+    setTimeout(() => {
+      setParticles(prev => prev.filter(p => !newParticles.find(np => np.id === p.id)));
+    }, 1000);
+  }, []);
+  
+  // HPリングのSVGパスを生成
+  const renderHPRing = (filled: number, goldFill: number, isEnemy: boolean, size: number) => {
+    const segments = [];
+    const totalSegments = 21;
+    const radius = size / 2 - 4;
+    const cx = size / 2;
+    const cy = size / 2;
+    const gapAngle = 2; // セグメント間のギャップ（度）
+    const segmentAngle = (360 - totalSegments * gapAngle) / totalSegments;
+    
+    for (let i = 0; i < totalSegments; i++) {
+      const startAngle = i * (segmentAngle + gapAngle) - 90;
+      const endAngle = startAngle + segmentAngle;
+      
+      const startRad = (startAngle * Math.PI) / 180;
+      const endRad = (endAngle * Math.PI) / 180;
+      
+      const x1 = cx + radius * Math.cos(startRad);
+      const y1 = cy + radius * Math.sin(startRad);
+      const x2 = cx + radius * Math.cos(endRad);
+      const y2 = cy + radius * Math.sin(endRad);
+      
+      let color = 'rgba(60, 50, 40, 0.5)'; // 空のセグメント
+      
+      if (i < goldFill) {
+        color = '#c9a227'; // 金色（Kによる）
+      } else if (i < filled) {
+        color = isEnemy ? '#f35e5e' : '#5ed3f3'; // 赤 or 青
+      }
+      
+      segments.push(
+        <path
+          key={i}
+          d={`M ${cx} ${cy} L ${x1} ${y1} A ${radius} ${radius} 0 0 1 ${x2} ${y2} Z`}
+          fill={color}
+          className={i < filled ? 'hp-segment-filled' : ''}
+        />
+      );
+    }
+    
+    return (
+      <svg width={size} height={size} className="hp-ring-svg">
+        {segments}
+      </svg>
+    );
+  };
   
   // ログ追加関数（全ログ保持、最新が下）
   const addLog = useCallback((playerType: 'player1' | 'player2', message: string) => {
@@ -398,6 +471,17 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   const WINNING_POINTS: Record<number, number> = { 0: 21, 1: 14, 2: 10, 3: 7, 4: 5 };
   const playerWinTarget = WINNING_POINTS[Math.min(player.kings, 4)];
   const enemyWinTarget = WINNING_POINTS[Math.min(enemy.kings, 4)];
+  
+  // HPリング用: Kの枚数に応じた金色セグメント数
+  const playerKings = player.field.filter(fc => fc.card.rank === 'K').length;
+  const enemyKings = enemy.field.filter(fc => fc.card.rank === 'K').length;
+  // 金色セグメント = 21 - 必要勝利ポイント
+  const playerGoldFill = playerKings > 0 ? 21 - WINNING_POINTS[Math.min(playerKings, 4)] : 0;
+  const enemyGoldFill = enemyKings > 0 ? 21 - WINNING_POINTS[Math.min(enemyKings, 4)] : 0;
+  
+  // HPリング: 点数に応じた塗りつぶしセグメント数（21が最大）
+  const playerFilledSegments = Math.min(21, playerPoints + playerGoldFill);
+  const enemyFilledSegments = Math.min(21, enemyPoints + enemyGoldFill);
   
   // 永続効果カード（8, J, Q, K）- ドロップ判定用
   const isPermanentEffect = (card: Card) => {
@@ -641,6 +725,11 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
             onCardSelect(card); // カードを選択状態にしてから
             onAction('playPoint');
             addLog('player1', `${raceName}${card.rank}を場にセット`);
+            // パーティクルエフェクト
+            if (playerPointsRef.current) {
+              const rect = playerPointsRef.current.getBoundingClientRect();
+              spawnParticles('player', rect.left + rect.width / 2, rect.top + rect.height / 2);
+            }
           }
         } else if (dropTarget === 'playerEffects') {
           // 効果として出す
@@ -1136,13 +1225,31 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
         </div>
       )}
       
-      {/* 敵情報バー - 右寄せ: アイコン | 名前 | 点数 */}
+      {/* 敵情報バー - 右寄せ: 名前 | 点数 | マッチインジケーター */}
       <div className="cuttle-enemy-info">
         <div className="cuttle-player-info-row right-aligned">
-          <div className="cuttle-player-icon enemy">👹</div>
           <span className="cuttle-player-name">{enemy.name}</span>
           <span className="cuttle-points-display">{enemyPoints}<span className="points-unit">pt/{enemyWinTarget}</span></span>
+          {matchInfo && (
+            <div className="match-indicators">
+              {[0, 1, 2].map(i => (
+                <div
+                  key={i}
+                  className={`match-indicator ${
+                    i < matchInfo.player2Wins ? 'win' : 
+                    i < (matchInfo.player1Wins + matchInfo.player2Wins) && i >= matchInfo.player2Wins ? 'lose' : ''
+                  }`}
+                />
+              ))}
+            </div>
+          )}
         </div>
+      </div>
+      
+      {/* 敵アイコン（高レイヤー、拡大） */}
+      <div ref={enemyIconRef} className="cuttle-icon-container enemy">
+        {renderHPRing(enemyFilledSegments, enemyGoldFill, true, 64)}
+        <div className="cuttle-icon-inner enemy">👹</div>
       </div>
       
       {/* 敵手札（扇状 - 逆向き：敵なので上に開く） */}
@@ -1434,13 +1541,31 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
         {renderEffectCards(playerEffectCards)}
       </div>
       
+      {/* プレイヤーアイコン（高レイヤー、拡大） */}
+      <div ref={playerIconRef} className="cuttle-icon-container player">
+        {renderHPRing(playerFilledSegments, playerGoldFill, false, 80)}
+        <div className="cuttle-icon-inner player">⚔️</div>
+      </div>
+      
       {/* ステータスバー */}
       <div className="cuttle-status-bar">
-        {/* 自分情報 - 左寄せ: アイコン | 名前 | 点数 */}
+        {/* 自分情報 - 左寄せ: 名前 | 点数 | マッチインジケーター */}
         <div className="cuttle-player-info-row left-aligned">
-          <div className="cuttle-player-icon player">⚔️</div>
           <span className="cuttle-player-name">{player.name}</span>
           <span className="cuttle-points-display">{playerPoints}<span className="points-unit">pt/{playerWinTarget}</span></span>
+          {matchInfo && (
+            <div className="match-indicators">
+              {[0, 1, 2].map(i => (
+                <div
+                  key={i}
+                  className={`match-indicator ${
+                    i < matchInfo.player1Wins ? 'win' : 
+                    i < (matchInfo.player1Wins + matchInfo.player2Wins) && i >= matchInfo.player1Wins ? 'lose' : ''
+                  }`}
+                />
+              ))}
+            </div>
+          )}
         </div>
         <div className="cuttle-actions">
           <button
@@ -1473,6 +1598,24 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
       
       {/* 下部余白 */}
       <div className="cuttle-bottom-spacer" />
+      
+      {/* パーティクルエフェクト */}
+      {particles.map(p => (
+        <div
+          key={p.id}
+          className={`particle ${p.target}`}
+          style={{
+            left: p.x,
+            top: p.y,
+            '--target-x': p.target === 'player' 
+              ? `${(playerIconRef.current?.offsetLeft || 40) + 40}px`
+              : `${(enemyIconRef.current?.offsetLeft || 320) + 32}px`,
+            '--target-y': p.target === 'player'
+              ? `${(playerIconRef.current?.offsetTop || 640) + 40}px`
+              : `${(enemyIconRef.current?.offsetTop || 28) + 32}px`,
+          } as React.CSSProperties}
+        />
+      ))}
       
       {/* 閲覧モード オーバーレイ */}
       <div className={`cuttle-overlay ${mode === 'browsing' ? 'active' : ''}`} />
