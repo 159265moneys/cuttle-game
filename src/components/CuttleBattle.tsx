@@ -1021,7 +1021,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   if (!isOpen) return null;
   
   const isGameOver = gameState.phase === 'gameOver';
-  const isWin = playerPoints >= 21;
+  const isWin = gameState.winner === 'player1';
   
   return (
     <div ref={screenRef} className={`cuttle-battle ${isOpen ? 'active' : ''}`}>
