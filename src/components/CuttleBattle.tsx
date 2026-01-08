@@ -922,14 +922,6 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
               style={getFaceMaskStyle(card.race, card.rank)}
             />
           )}
-          <div 
-            className="card-suit-icon corner top-left large"
-            style={getSuitMaskStyle(card.race)}
-          />
-          <div 
-            className="card-suit-icon corner bottom-right large"
-            style={getSuitMaskStyle(card.race)}
-          />
           <div className="card-rank top-left">{card.rank}</div>
           <div className="card-rank bottom-right">{card.rank}</div>
           {pipLayout && (
