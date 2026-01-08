@@ -558,6 +558,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
           // 点数として出す
           if (card.value > 0) {
             const raceName = RACE_NAMES[card.race] || card.race;
+            onCardSelect(card); // カードを選択状態にしてから
             onAction('playPoint');
             addLog('player1', `${raceName}${card.rank}を場にセット`);
           }
@@ -567,7 +568,8 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
           if (isPermanentEffect(card)) {
             // J以外の永続効果（Q, K, 8）
             if (card.rank !== 'J') {
-            onAction('playPermanent');
+              onCardSelect(card); // カードを選択状態にしてから
+              onAction('playPermanent');
               addLog('player1', `${raceName}${card.rank}の永続効果を発動`);
             }
           } else if (card.rank === '3') {
@@ -580,7 +582,8 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
           } else {
             // ワンオフ効果（ターゲット不要のもの: 4, 5, 6, 7）
             if (!['A', '2', '9', '10'].includes(card.rank)) {
-            onAction('playOneOff');
+              onCardSelect(card); // カードを選択状態にしてから
+              onAction('playOneOff');
               if (card.rank === '4') {
                 addLog('player1', `${raceName}4で相手の手札を2枚捨てさせる`);
               } else if (card.rank === '5') {
