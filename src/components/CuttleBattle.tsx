@@ -206,9 +206,6 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   const [pendingTarget, setPendingTarget] = useState<FieldCard | null>(null);
   const [showActionModal, setShowActionModal] = useState(false);
   
-  // 8の選択モーダル用
-  const [show8ChoiceModal, setShow8ChoiceModal] = useState(false);
-  const [pending8Card, setPending8Card] = useState<Card | null>(null);
   
   // ログシステム
   const [actionLogs, setActionLogs] = useState<LogEntry[]>([]);
@@ -508,11 +505,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
           }
         } else if (dropTarget === 'playerEffects') {
           // 効果として出す
-          if (card.rank === '8') {
-            // 8は点数か永続か選択させる
-            setPending8Card(card);
-            setShow8ChoiceModal(true);
-          } else if (isPermanentEffect(card)) {
+          if (isPermanentEffect(card)) {
             // J以外の永続効果（Q, K）
             if (card.rank !== 'J') {
             onAction('playPermanent');
@@ -1322,58 +1315,6 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
         </div>
       )}
       
-      {/* 8の選択モーダル */}
-      {show8ChoiceModal && pending8Card && (
-        <div className="cuttle-action-modal">
-          <div className="action-modal-content">
-            <div className="action-modal-title">
-              8の使い方を選択
-            </div>
-            <div className="action-modal-desc">
-              点数として出すか、永続効果として出すか選んでください
-            </div>
-            <div className="action-modal-buttons">
-              <button 
-                className="action-btn effect"
-                onClick={() => {
-                  onCardSelect(pending8Card);
-                  setTimeout(() => {
-                    onAction('playPoint');
-                    addLog('player1', '8を点数（8pt）としてプレイ');
-                  }, 50);
-                  setShow8ChoiceModal(false);
-                  setPending8Card(null);
-                }}
-              >
-                点数（8pt）として出す
-              </button>
-              <button 
-                className="action-btn effect"
-                onClick={() => {
-                  onCardSelect(pending8Card);
-                  setTimeout(() => {
-                    onAction('playPermanent');
-                    addLog('player1', '8を永続効果としてプレイ');
-                  }, 50);
-                  setShow8ChoiceModal(false);
-                  setPending8Card(null);
-                }}
-              >
-                永続効果として出す
-              </button>
-              <button 
-                className="action-btn cancel"
-                onClick={() => {
-                  setShow8ChoiceModal(false);
-                  setPending8Card(null);
-                }}
-              >
-                戻る
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       
       {/* 7の効果: 山札トップ2枚から選択 */}
       {gameState.phase === 'sevenChoice' && gameState.sevenChoices && (
