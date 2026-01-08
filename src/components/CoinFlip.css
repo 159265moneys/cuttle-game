@@ -66,10 +66,10 @@
     50% { transform: translateY(-10px); }
 }
 
-/* コイン本体 */
+/* コイン本体 - 0.7倍サイズ */
 .coin {
-    width: 150px;
-    height: 150px;
+    width: 105px;
+    height: 105px;
     position: relative;
     transform-style: preserve-3d;
     transition: transform 0.1s ease-out;
@@ -85,19 +85,19 @@
         transform: translateY(0) rotateX(0deg);
     }
     20% {
-        transform: translateY(-300px) rotateX(720deg);
+        transform: translateY(-200px) rotateX(720deg);
     }
     40% {
-        transform: translateY(-350px) rotateX(1440deg);
+        transform: translateY(-240px) rotateX(1440deg);
     }
     60% {
-        transform: translateY(-250px) rotateX(2160deg);
+        transform: translateY(-170px) rotateX(2160deg);
     }
     80% {
         transform: translateY(0) rotateX(2880deg);
     }
     90% {
-        transform: translateY(30px) rotateX(3240deg);
+        transform: translateY(20px) rotateX(3240deg);
     }
     100% {
         transform: translateY(0) rotateX(3600deg);
@@ -113,7 +113,7 @@
     transform: rotateX(180deg);
 }
 
-/* コインの面 */
+/* コインの面 - 厚み追加 */
 .coin-face {
     position: absolute;
     width: 100%;
@@ -124,19 +124,29 @@
     align-items: center;
     justify-content: center;
     box-shadow: 
-        inset 0 0 30px rgba(201, 162, 39, 0.3),
-        0 5px 20px rgba(0, 0, 0, 0.5);
+        inset 0 0 20px rgba(201, 162, 39, 0.3),
+        0 5px 15px rgba(0, 0, 0, 0.5);
 }
 
 .coin-heads {
     background: linear-gradient(145deg, #c9a227 0%, #a88520 50%, #866a18 100%);
-    border: 4px solid #d4b440;
+    border: 5px solid #d4b440;
+    box-shadow: 
+        inset 0 0 20px rgba(255, 220, 100, 0.3),
+        0 4px 0 #7a5a10,
+        0 6px 0 #5a4008,
+        0 8px 15px rgba(0, 0, 0, 0.5);
 }
 
 .coin-tails {
     background: linear-gradient(145deg, #3a2a25 0%, #281a15 50%, #201510 100%);
-    border: 4px solid #5a4a3a;
+    border: 5px solid #5a4a3a;
     transform: rotateX(180deg);
+    box-shadow: 
+        inset 0 0 20px rgba(100, 80, 60, 0.3),
+        0 4px 0 #2a1a15,
+        0 6px 0 #1a0a05,
+        0 8px 15px rgba(0, 0, 0, 0.5);
 }
 
 .coin-inner {
@@ -241,11 +251,7 @@
     opacity: 0.9;
 }
 
-.tap-to-start {
-    font-size: 0.9rem;
-    color: rgba(200, 180, 140, 0.7);
-    animation: pulse-text 2s ease-in-out infinite;
-}
+/* tap-to-start 削除済み */
 
 /* フリップ中は指示を非表示 */
 .coin-container.flipping + .coin-instruction,

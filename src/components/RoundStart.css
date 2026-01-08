@@ -1,0 +1,165 @@
+/* ========================================
+   ROUND START 演出画面
+   ======================================== */
+
+.round-start-screen {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    overflow: hidden;
+}
+
+.round-start-bg {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, 
+        #0a0608 0%, 
+        #1a1015 30%, 
+        #150a10 70%, 
+        #0a0608 100%
+    );
+}
+
+/* 中央テキスト */
+.round-start-center {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 0.5s ease-out;
+}
+
+.round-start-screen.show .round-start-center,
+.round-start-screen.enter .round-start-center {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.round-start-screen.exit .round-start-center {
+    opacity: 0;
+    transform: scale(1.2);
+}
+
+.round-number {
+    font-family: 'Cinzel', serif;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #c9a227;
+    text-shadow: 0 0 30px rgba(201, 162, 39, 0.7);
+    letter-spacing: 0.2em;
+    margin-bottom: 10px;
+}
+
+.round-start-text {
+    font-family: 'Cinzel', serif;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #e8e0d4;
+    text-shadow: 0 0 20px rgba(232, 224, 212, 0.5);
+    letter-spacing: 0.3em;
+}
+
+/* プレイヤー情報 */
+.round-player-info {
+    position: absolute;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    opacity: 0;
+    transition: all 0.5s ease-out;
+}
+
+.round-player-info.player {
+    left: 20px;
+    bottom: 60px;
+    transform: translateX(-50px);
+}
+
+.round-player-info.enemy {
+    right: 20px;
+    top: 60px;
+    transform: translateX(50px);
+    flex-direction: row-reverse;
+}
+
+.round-start-screen.show .round-player-info,
+.round-start-screen.enter .round-player-info {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.round-start-screen.exit .round-player-info {
+    opacity: 0;
+}
+
+.round-start-screen.exit .round-player-info.player {
+    transform: translateX(-50px);
+}
+
+.round-start-screen.exit .round-player-info.enemy {
+    transform: translateX(50px);
+}
+
+/* アイコン */
+.round-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.round-icon.player {
+    background: linear-gradient(135deg, #3a3020, #2a2015);
+    border: 2px solid #c9a227;
+    box-shadow: 0 0 15px rgba(201, 162, 39, 0.4);
+}
+
+.round-icon.enemy {
+    background: linear-gradient(135deg, #3a2030, #2a1520);
+    border: 2px solid #8b2942;
+    box-shadow: 0 0 15px rgba(139, 41, 66, 0.4);
+}
+
+/* 名前 */
+.round-name {
+    font-family: 'Cinzel', serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #e8e0d4;
+}
+
+/* マッチインジケーター */
+.round-indicators {
+    display: flex;
+    gap: 6px;
+}
+
+.round-indicator {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(60, 50, 40, 0.6);
+    border: 1px solid rgba(100, 80, 60, 0.5);
+    transition: all 0.3s ease;
+}
+
+.round-indicator.player-win {
+    background: #5ed3f3;
+    border-color: #5ed3f3;
+    box-shadow: 0 0 10px rgba(94, 211, 243, 0.6);
+}
+
+.round-indicator.enemy-win {
+    background: #f35e5e;
+    border-color: #f35e5e;
+    box-shadow: 0 0 10px rgba(243, 94, 94, 0.6);
+}
+

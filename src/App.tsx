@@ -12,6 +12,7 @@ import {
 import { getCPUAction } from './utils/cpuAI';
 import CuttleBattle from './components/CuttleBattle';
 import CoinFlip from './components/CoinFlip';
+import RoundStart from './components/RoundStart';
 
 // マッチ状態の型
 interface MatchState {
@@ -23,7 +24,7 @@ interface MatchState {
 
 function App() {
   // ゲーム画面の状態
-  const [screen, setScreen] = useState<'coinFlip' | 'battle' | 'matchResult' | 'finalResult'>('coinFlip');
+  const [screen, setScreen] = useState<'coinFlip' | 'roundStart' | 'battle' | 'finalResult'>('coinFlip');
   
   // マッチ状態
   const [matchState, setMatchState] = useState<MatchState>({
@@ -52,14 +53,19 @@ function App() {
     setScreen('battle');
   }, []);
 
-  // コイントス完了
+  // コイントス完了 → ROUND 1 START演出へ
   const handleCoinFlipComplete = useCallback((playerGoesFirst: boolean) => {
     setMatchState(prev => ({
       ...prev,
       playerStartsFirst: playerGoesFirst,
     }));
-    startNewGame(playerGoesFirst);
-  }, [startNewGame]);
+    setScreen('roundStart');
+  }, []);
+
+  // ROUND START演出完了 → バトル開始
+  const handleRoundStartComplete = useCallback(() => {
+    startNewGame(matchState.playerStartsFirst);
+  }, [startNewGame, matchState.playerStartsFirst]);
 
   // ゲーム終了時の処理
   useEffect(() => {
@@ -88,24 +94,15 @@ function App() {
     }
   }, [gameState?.phase, gameState?.winner]);
 
-  // 次のマッチを開始
+  // 次のマッチを開始 → ROUND START演出へ
   const startNextMatch = useCallback(() => {
-    setMatchState(prev => {
-      // 先攻後攻を交代
-      const newPlayerStartsFirst = !prev.playerStartsFirst;
-      
-      // 新しいゲームを開始
-      setTimeout(() => {
-        startNewGame(newPlayerStartsFirst);
-      }, 100);
-      
-      return {
-        ...prev,
-        currentMatch: prev.currentMatch + 1,
-        playerStartsFirst: newPlayerStartsFirst,
-      };
-    });
-  }, [startNewGame]);
+    setMatchState(prev => ({
+      ...prev,
+      currentMatch: prev.currentMatch + 1,
+      playerStartsFirst: !prev.playerStartsFirst, // 先攻後攻を交代
+    }));
+    setScreen('roundStart');
+  }, []);
 
   // 全体リスタート（最初から）
   const handleFullRestart = useCallback(() => {
@@ -423,6 +420,19 @@ function App() {
   // 画面に応じた表示
   if (screen === 'coinFlip') {
     return <CoinFlip onComplete={handleCoinFlipComplete} />;
+  }
+
+  if (screen === 'roundStart') {
+    return (
+      <RoundStart
+        roundNumber={matchState.currentMatch}
+        player1Wins={matchState.player1Wins}
+        player2Wins={matchState.player2Wins}
+        playerName="あなた"
+        enemyName="CPU"
+        onComplete={handleRoundStartComplete}
+      />
+    );
   }
 
   if (screen === 'finalResult') {

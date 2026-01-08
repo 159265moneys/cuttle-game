@@ -1213,18 +1213,6 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   
   return (
     <div ref={screenRef} className={`cuttle-battle ${isOpen ? 'active' : ''}`}>
-      {/* マッチ情報 */}
-      {matchInfo && (
-        <div className="cuttle-match-info">
-          <span className="match-number">第{matchInfo.currentMatch}戦</span>
-          <span className="match-score">
-            <span className="player-wins">{matchInfo.player1Wins}</span>
-            <span className="score-divider">-</span>
-            <span className="enemy-wins">{matchInfo.player2Wins}</span>
-          </span>
-        </div>
-      )}
-      
       {/* 敵情報バー - 右寄せ: 名前 | 点数 | マッチインジケーター */}
       <div className="cuttle-enemy-info">
         <div className="cuttle-player-info-row right-aligned">

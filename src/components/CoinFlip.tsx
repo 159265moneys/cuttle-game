@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import './CoinFlip.css';
 
 const BASE_URL = import.meta.env.BASE_URL || '/';
@@ -26,6 +26,16 @@ const CoinFlip: React.FC<CoinFlipProps> = ({ onComplete }) => {
       setPhase('result');
     }, 2000);
   }, [phase]);
+  
+  // 結果表示後、2秒で自動遷移
+  useEffect(() => {
+    if (phase === 'result' && result !== null) {
+      const timer = setTimeout(() => {
+        onComplete(result === 'heads');
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [phase, result, onComplete]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent | React.MouseEvent) => {
     if (phase !== 'ready') return;
@@ -43,12 +53,6 @@ const CoinFlip: React.FC<CoinFlipProps> = ({ onComplete }) => {
     }
     setTouchStart(null);
   }, [phase, touchStart, flipCoin]);
-
-  const handleResultClick = useCallback(() => {
-    if (phase === 'result' && result !== null) {
-      onComplete(result === 'heads');
-    }
-  }, [phase, result, onComplete]);
 
   // スートアイコンのマスクスタイル
   const getSuitMaskStyle = (suit: string) => ({
@@ -115,7 +119,7 @@ const CoinFlip: React.FC<CoinFlipProps> = ({ onComplete }) => {
       </div>
 
       {phase === 'result' && (
-        <div className="coin-result" onClick={handleResultClick}>
+        <div className="coin-result">
           <div className={`result-text ${result}`}>
             {result === 'heads' ? (
               <>
@@ -129,7 +133,6 @@ const CoinFlip: React.FC<CoinFlipProps> = ({ onComplete }) => {
               </>
             )}
           </div>
-          <div className="tap-to-start">タップしてバトル開始</div>
         </div>
       )}
     </div>
