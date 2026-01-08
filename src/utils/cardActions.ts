@@ -430,59 +430,27 @@ export function executeScuttle(
 
   const scuttleResult = canScuttle(attackerCard, defenderField, hasQueen(opponent));
 
-  // 完全にブロックされた場合（魔術師保護など）
-  if (scuttleResult.result === 'blocked') {
+  // スカトル不可の場合
+  if (!scuttleResult.canScuttle) {
     return { ...state, message: 'アタックできません' };
   }
 
-  // 手札から削除（全ケースで攻撃カードは消費される）
+  // 手札から削除
   player.hand = player.hand.filter(c => c.id !== attackerCard.id);
 
-  // 種族不利で失敗の場合：自分のカードのみ捨て札
-  if (scuttleResult.result === 'fail') {
-    newState.scrapPile.push({ ...attackerCard });
-    newState.message = 'アタック失敗！（種族不利）';
-    newState.consecutivePasses = 0;
-    return endTurn(newState);
-  }
-
-  // 成功ケース：相手のカードを破壊
+  // 相手のカードを破壊（付属Jも捨て札へ）
   const actualDefender = opponent.field.find(fc => fc.card.id === defenderField.card.id);
   if (actualDefender) {
     sendAttachedKnightsToScrap(newState, actualDefender);
   }
   
   opponent.field = opponent.field.filter(fc => fc.card.id !== defenderField.card.id);
-  newState.scrapPile.push({ ...defenderField.card });
   
-  // 種族有利(win)：攻撃側のカードは残る（手札には戻らないが捨て札にもならない）
-  // →いや、ルールブック再確認すると「相手のカードのみ捨て札」なので攻撃側は捨て札にならない
-  if (scuttleResult.result === 'win') {
-    // 攻撃側のカードは場に残る（点数カードとして自分のフィールドへ）
-    const fieldCard: FieldCard = {
-      card: { ...attackerCard },
-      attachedKnights: [],
-      owner: playerId,
-      controller: playerId,
-    };
-    player.field.push(fieldCard);
-    newState.message = 'アタック大成功！（種族有利）';
-  } else {
-    // 相打ち(mutual)：両方捨て札
-    newState.scrapPile.push({ ...attackerCard });
-    newState.message = 'アタック成功！（相打ち）';
-  }
-
+  // 両方捨て札（常に相打ち）
+  newState.scrapPile.push({ ...defenderField.card });
+  newState.scrapPile.push({ ...attackerCard });
+  newState.message = 'アタック成功！';
   newState.consecutivePasses = 0;
-
-  // 勝利条件チェック（種族有利で攻撃側が場に残る場合）
-  const winner = checkWinCondition(newState);
-  if (winner) {
-    newState.winner = winner;
-    newState.phase = 'gameOver';
-    newState.message = `${winner === 'player1' ? 'プレイヤー1' : 'プレイヤー2'}の勝利！`;
-    return newState;
-  }
 
   return endTurn(newState);
 }
