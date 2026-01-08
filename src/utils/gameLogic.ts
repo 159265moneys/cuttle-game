@@ -176,12 +176,13 @@ export function getRaceMatchup(attacker: Race, defender: Race): RaceMatchup {
   return 'draw';
 }
 
-// スカトル可否判定（原典準拠：成功時は常に相打ち、同数字は属性で可否判定）
+// スカトル可否判定（ファンタジー改変版：同数字は種族相性で勝敗）
+// result: 'win'=相手のみ捨て札, 'fail'=自分のみ捨て札, 'mutual'=両方捨て札, 'blocked'=不可
 export function canScuttle(
   attackerCard: Card, 
   defenderCard: FieldCard,
   defenderHasQueen: boolean
-): { canScuttle: boolean; result: 'success' | 'fail' | 'mutual' | 'blocked' } {
+): { canScuttle: boolean; result: 'win' | 'fail' | 'mutual' | 'blocked' } {
   // 魔術師で保護されている場合
   if (defenderHasQueen) {
     return { canScuttle: false, result: 'blocked' };
@@ -195,7 +196,7 @@ export function canScuttle(
     return { canScuttle: false, result: 'blocked' };
   }
   
-  // 攻撃側の数字が大きい場合は成功（常に相打ち）
+  // 攻撃側の数字が大きい場合は成功（相打ち）
   if (attackerValue > defenderValue) {
     return { canScuttle: true, result: 'mutual' };
   }
@@ -205,19 +206,18 @@ export function canScuttle(
     return { canScuttle: false, result: 'blocked' };
   }
   
-  // 同じ数字の場合は種族相性で「スカトル可否」を判定
-  // 可能な場合は常に相打ち、不可な場合はスカトルできない
+  // 同じ数字の場合は種族相性で勝敗を判定
   const matchup = getRaceMatchup(attackerCard.race, defenderCard.card.race);
   
   switch (matchup) {
     case 'win':
-      // 有利な種族 → スカトル可能（相打ち）
-      return { canScuttle: true, result: 'mutual' };
+      // 種族有利 → 相手のカードのみ捨て札
+      return { canScuttle: true, result: 'win' };
     case 'lose':
-      // 不利な種族 → スカトル不可
-      return { canScuttle: false, result: 'blocked' };
+      // 種族不利 → 自分のカードのみ捨て札（スカトル失敗）
+      return { canScuttle: false, result: 'fail' };
     case 'draw':
-      // 同じ種族 → スカトル可能（相打ち）
+      // 同じ種族 → 両方捨て札
       return { canScuttle: true, result: 'mutual' };
   }
 }

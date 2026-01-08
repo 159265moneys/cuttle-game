@@ -17,6 +17,7 @@ interface CuttleBattleProps {
   onAction: (action: ActionType) => void;
   onDirectAction: (action: ActionType, card: Card, target?: FieldCard) => void;
   onDiscard: (cards: Card[]) => void; // 4の効果で手札を捨てる
+  onSevenOptionB: () => void; // 7のオプションB: 山札に戻して手札からプレイ
   onCancel: () => void;
   onRestart: () => void;
   isCPUTurn: boolean;
@@ -192,6 +193,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   onAction,
   onDirectAction,
   onDiscard,
+  onSevenOptionB,
   onRestart,
   isCPUTurn,
 }) => {
@@ -258,28 +260,31 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   
   // ゲーム状態の変化を監視してログを追加
   const prevPhaseRef = useRef(gameState.phase);
-  const prevPlayer1FieldRef = useRef(player.field.length);
-  const prevPlayer2FieldRef = useRef(enemy.field.length);
+  const prevPlayer1FieldRef = useRef<FieldCard[]>([...player.field]);
+  const prevPlayer2FieldRef = useRef<FieldCard[]>([...enemy.field]);
   const prevPlayer1HandRef = useRef(player.hand.length);
   const prevPlayer2HandRef = useRef(enemy.hand.length);
   const prevDeckRef = useRef(gameState.deck.length);
   const prevScrapRef = useRef(gameState.scrapPile.length);
   const prevCurrentPlayerRef = useRef(gameState.currentPlayer);
-  
+
   useEffect(() => {
     // 変化量を検出
-    const p2FieldDiff = enemy.field.length - prevPlayer2FieldRef.current;
+    const p1FieldDiff = player.field.length - prevPlayer1FieldRef.current.length;
+    const p2FieldDiff = enemy.field.length - prevPlayer2FieldRef.current.length;
     const p2HandDiff = enemy.hand.length - prevPlayer2HandRef.current;
     const deckDiff = gameState.deck.length - prevDeckRef.current;
+    const scrapDiff = gameState.scrapPile.length - prevScrapRef.current;
     const turnChanged = prevCurrentPlayerRef.current !== gameState.currentPlayer;
+    const wasEnemyTurn = prevCurrentPlayerRef.current === 'player2';
     
     // CPUがドロー（ターンが変わり、手札が増え、デッキが減った）
-    if (turnChanged && prevCurrentPlayerRef.current === 'player2' && p2HandDiff > 0 && deckDiff < 0 && p2FieldDiff === 0) {
+    if (turnChanged && wasEnemyTurn && p2HandDiff > 0 && deckDiff < 0 && p2FieldDiff === 0 && p1FieldDiff >= 0) {
       addLog('player2', 'ドローした');
     }
     
     // CPUがカードをプレイ（フィールドが増えた）
-    if (p2FieldDiff > 0 && turnChanged && prevCurrentPlayerRef.current === 'player2') {
+    else if (p2FieldDiff > 0 && turnChanged && wasEnemyTurn && p1FieldDiff >= 0) {
       const newCard = enemy.field[enemy.field.length - 1];
       if (newCard) {
         const raceName = RACE_NAMES[newCard.card.race] || newCard.card.race;
@@ -292,6 +297,47 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
       }
     }
     
+    // CPUがプレイヤーのカードを破壊（自分のフィールドが減り、墓地が増えた）
+    else if (turnChanged && wasEnemyTurn && p1FieldDiff < 0 && scrapDiff > 0) {
+      // 破壊されたカードを特定
+      const currentCardIds = new Set(player.field.map(fc => fc.card.id));
+      const destroyedCards = prevPlayer1FieldRef.current.filter(fc => !currentCardIds.has(fc.card.id));
+      
+      for (const fc of destroyedCards) {
+        const raceName = RACE_NAMES[fc.card.race] || fc.card.race;
+        if (fc.card.value > 0) {
+          // アタックか効果で点数カードが破壊された
+          addLog('player2', `${raceName}${fc.card.rank}を破壊した`);
+        } else {
+          // 永続効果が破壊された
+          addLog('player2', `${raceName}${fc.card.rank}の永続効果を破壊`);
+        }
+      }
+    }
+    
+    // CPUがプレイヤーのカードを手札に戻した（自分のフィールドが減り、手札が増えた）
+    else if (turnChanged && wasEnemyTurn && p1FieldDiff < 0 && (player.hand.length - prevPlayer1HandRef.current) > 0) {
+      const currentCardIds = new Set(player.field.map(fc => fc.card.id));
+      const returnedCards = prevPlayer1FieldRef.current.filter(fc => !currentCardIds.has(fc.card.id));
+      
+      for (const fc of returnedCards) {
+        const raceName = RACE_NAMES[fc.card.race] || fc.card.race;
+        addLog('player2', `${raceName}${fc.card.rank}を手札に戻した`);
+      }
+    }
+    
+    // CPUがJでプレイヤーのカードを略奪（controllerが変わった）
+    else if (turnChanged && wasEnemyTurn && p2FieldDiff === 0 && p1FieldDiff === 0) {
+      // controllerの変化をチェック
+      for (const fc of player.field) {
+        const prevFc = prevPlayer1FieldRef.current.find(pfc => pfc.card.id === fc.card.id);
+        if (prevFc && prevFc.controller === 'player1' && fc.controller === 'player2') {
+          const raceName = RACE_NAMES[fc.card.race] || fc.card.race;
+          addLog('player2', `Jで${raceName}${fc.card.rank}を略奪`);
+        }
+      }
+    }
+    
     // ゲームオーバー
     if (gameState.phase === 'gameOver' && prevPhaseRef.current !== 'gameOver') {
       if (gameState.winner) {
@@ -299,10 +345,10 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
       }
     }
     
-    // 状態を更新
+    // 状態を更新（ディープコピー）
     prevPhaseRef.current = gameState.phase;
-    prevPlayer1FieldRef.current = player.field.length;
-    prevPlayer2FieldRef.current = enemy.field.length;
+    prevPlayer1FieldRef.current = player.field.map(fc => ({ ...fc, card: { ...fc.card } }));
+    prevPlayer2FieldRef.current = enemy.field.map(fc => ({ ...fc, card: { ...fc.card } }));
     prevPlayer1HandRef.current = player.hand.length;
     prevPlayer2HandRef.current = enemy.hand.length;
     prevDeckRef.current = gameState.deck.length;
@@ -569,7 +615,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
             // J以外の永続効果（Q, K, 8）
             if (card.rank !== 'J') {
               onCardSelect(card); // カードを選択状態にしてから
-              onAction('playPermanent');
+            onAction('playPermanent');
               addLog('player1', `${raceName}${card.rank}の永続効果を発動`);
             }
           } else if (card.rank === '3') {
@@ -583,7 +629,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
             // ワンオフ効果（ターゲット不要のもの: 4, 5, 6, 7）
             if (!['A', '2', '9', '10'].includes(card.rank)) {
               onCardSelect(card); // カードを選択状態にしてから
-              onAction('playOneOff');
+            onAction('playOneOff');
               if (card.rank === '4') {
                 addLog('player1', `${raceName}4で相手の手札を2枚捨てさせる`);
               } else if (card.rank === '5') {
@@ -1177,32 +1223,48 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
       
       {/* 山札・メッセージ・墓地 */}
       <div className="cuttle-deck-area">
-        {/* 山札 - 重なり表現 */}
-        <div className="cuttle-pile-stack">
-          {Array.from({ length: getStackCount(gameState.deck.length) }).map((_, i, arr) => (
-            <div
-              key={`deck-${i}`}
-              className="cuttle-deck-card"
-              style={{
-                position: i === arr.length - 1 ? 'relative' : 'absolute',
-                top: `${-i * 0.7}px`,
-                left: `${i * 0.35}px`,
-                zIndex: i,
-              }}
-            >
-              {i === arr.length - 1 && (
-                <>
-          <span className="pile-title">山札</span>
-                  <span className="pile-count">{gameState.deck.length}</span>
-                </>
-              )}
-            </div>
-          ))}
-          {gameState.deck.length === 0 && (
+        {/* 山札 - 裏面カード積み重ね表示 */}
+        <div className="cuttle-pile-stack deck-pile">
+          {gameState.deck.length === 0 ? (
             <div className="cuttle-deck-card empty">
-              <span className="pile-title">山札</span>
               <span className="pile-count">0</span>
-            </div>
+        </div>
+          ) : (
+            Array.from({ length: getStackCount(gameState.deck.length) }).map((_, i, arr) => (
+              <div
+                key={`deck-${i}`}
+                className="cuttle-deck-card-back"
+                style={{
+                  position: i === arr.length - 1 ? 'relative' : 'absolute',
+                  top: `${-i * 0.7}px`,
+                  left: `${i * 0.35}px`,
+                  zIndex: i,
+                }}
+              >
+                {/* 羊皮紙背景 */}
+                <div className="card-back-parchment" />
+                
+                {/* 中央メインイラスト */}
+                <div 
+                  className="card-back-main"
+                  style={getMaskStyle(`${BASE_URL}sprite/back/backmain.png`)}
+                />
+                
+                {/* 四隅のスートアイコン（向かい合わせ） */}
+                <div className="card-back-suit top-left" style={getMaskStyle(`${BASE_URL}sprite/suit/human.png`)} />
+                <div className="card-back-suit top-right" style={getMaskStyle(`${BASE_URL}sprite/suit/elf.png`)} />
+                <div className="card-back-suit bottom-left" style={getMaskStyle(`${BASE_URL}sprite/suit/goblin.png`)} />
+                <div className="card-back-suit bottom-right" style={getMaskStyle(`${BASE_URL}sprite/suit/demon.png`)} />
+                
+                {/* 装飾フレーム */}
+                <div className="card-back-frame" />
+                
+                {/* 最上面に枚数表示 */}
+                {i === arr.length - 1 && (
+                  <span className="pile-count-overlay">{gameState.deck.length}</span>
+                )}
+              </div>
+            ))
           )}
         </div>
         
@@ -1221,32 +1283,84 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
           )}
         </div>
         
-        {/* 墓地 - 重なり表現 */}
-        <div className="cuttle-pile-stack" onClick={() => setShowScrapModal(true)}>
-          {Array.from({ length: getStackCount(gameState.scrapPile.length) }).map((_, i, arr) => (
-        <div 
-              key={`scrap-${i}`}
-          className="cuttle-scrap-card"
-              style={{
-                position: i === arr.length - 1 ? 'relative' : 'absolute',
-                top: `${-i * 0.7}px`,
-                right: `${i * 0.35}px`,
-                zIndex: i,
-              }}
-            >
-              {i === arr.length - 1 && (
-                <>
-          <span className="pile-title">墓地</span>
-                  <span className="pile-count">{gameState.scrapPile.length}</span>
-                </>
-              )}
-            </div>
-          ))}
-          {gameState.scrapPile.length === 0 && (
+        {/* 墓地 - 最新カードの表面表示 */}
+        <div className="cuttle-pile-stack scrap-pile" onClick={() => setShowScrapModal(true)}>
+          {gameState.scrapPile.length === 0 ? (
             <div className="cuttle-scrap-card empty">
               <span className="pile-title">墓地</span>
               <span className="pile-count">0</span>
             </div>
+          ) : (
+            <>
+              {/* 下に重なる裏面カード */}
+              {Array.from({ length: Math.max(0, getStackCount(gameState.scrapPile.length) - 1) }).map((_, i) => (
+                <div
+                  key={`scrap-back-${i}`}
+                  className="cuttle-scrap-card-back"
+                  style={{
+                    position: 'absolute',
+                    top: `${-i * 0.7}px`,
+                    right: `${i * 0.35}px`,
+                    zIndex: i,
+                  }}
+                >
+                  <div className="card-back-parchment" />
+                  <div className="card-back-frame" />
+        </div>
+              ))}
+              {/* 最上面に表向きの最新カード */}
+              {(() => {
+                const topCard = gameState.scrapPile[gameState.scrapPile.length - 1];
+                const stackCount = getStackCount(gameState.scrapPile.length);
+                const pipLayout = PIP_LAYOUTS[topCard.rank];
+                return (
+                  <div
+                    className={`cuttle-scrap-card-top ${getSuitClass(topCard)}`}
+                    style={{
+                      position: 'relative',
+                      top: `${-(stackCount - 1) * 0.7}px`,
+                      right: `${(stackCount - 1) * 0.35}px`,
+                      zIndex: stackCount,
+                    }}
+                  >
+                    {/* カード背景 */}
+                    <div className="card-parchment" />
+                    
+                    {/* 絵札イラスト */}
+                    {isFaceCard(topCard.rank) && (
+                      <div 
+                        className="card-face-art pile"
+                        style={getFaceMaskStyle(topCard.race, topCard.rank)}
+                      />
+                    )}
+                    
+                    {/* ランク表示 */}
+                    <div className="card-rank top-left pile">{topCard.rank}</div>
+                    <div className="card-rank bottom-right pile">{topCard.rank}</div>
+                    
+                    {/* 数字カードのスート配置 */}
+                    {pipLayout && (
+                      <div className="card-pips pile">
+                        {pipLayout.map((pip, j) => (
+                          <div
+                            key={j}
+                            className={`card-pip pile ${pip.inverted ? 'inverted' : ''}`}
+                            style={{
+                              left: `${pip.x}%`,
+                              top: `${pip.y}%`,
+                              ...getSuitMaskStyle(topCard.race),
+                            }}
+                          />
+                        ))}
+                      </div>
+                    )}
+                    
+                    {/* 枚数表示オーバーレイ */}
+                    <span className="pile-count-overlay">{gameState.scrapPile.length}</span>
+                  </div>
+                );
+              })()}
+            </>
           )}
         </div>
       </div>
@@ -1460,7 +1574,8 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
               7の効果
             </div>
             <div className="action-modal-desc">
-              山札の上から2枚のうち1枚を選んでプレイ
+              【A】カードをタップして即プレイ<br/>
+              【B】山札に戻して手札からプレイ
             </div>
             <div className="seven-choice-cards">
               {gameState.sevenChoices.map((card) => (
@@ -1502,6 +1617,14 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
                   </div>
                 </div>
               ))}
+            </div>
+            <div className="seven-option-buttons">
+              <button 
+                className="seven-option-b-btn"
+                onClick={onSevenOptionB}
+              >
+                【B】山札に戻して手札からプレイ
+              </button>
             </div>
           </div>
         </div>

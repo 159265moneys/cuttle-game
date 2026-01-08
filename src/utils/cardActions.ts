@@ -18,6 +18,13 @@ interface AttachedKnight extends Card {
   playedBy: 'player1' | 'player2';
 }
 
+// Jターゲット情報（attachedKnightsから見つけた場合）
+interface KnightTarget {
+  knight: Card;
+  attachedTo: FieldCard;
+  owner: 'player1' | 'player2'; // どのプレイヤーのフィールドにあるか
+}
+
 // 深いコピーでプレイヤーを複製
 function clonePlayer(player: Player): Player {
   return {
@@ -49,9 +56,7 @@ function cloneGameState(state: GameState): GameState {
 
 // 8永続効果の公開フラグをリセット
 function resetGlassesEffect(state: GameState, destroyedCard: Card, cardOwner: 'player1' | 'player2'): void {
-  // 8が永続効果として出されていた場合（value=0）、相手の手札公開をリセット
   if (destroyedCard.rank === '8' && destroyedCard.value === 0) {
-    // 8の所有者の「相手」の手札公開フラグをリセット
     const opponentOfOwner = getOpponent(cardOwner);
     state.opponentHandRevealed[opponentOfOwner] = false;
   }
@@ -69,15 +74,55 @@ function sendAttachedKnightsToScrap(state: GameState, fieldCard: FieldCard): voi
 // 点数カードからJが除去された時のcontroller再計算
 function recalculateControllerAfterKnightRemoval(fieldCard: FieldCard): void {
   if (fieldCard.attachedKnights.length === 0) {
-    // Jがなくなったら元の所有者に戻る
     fieldCard.controller = fieldCard.owner;
   } else {
-    // 最新（末尾）のJの所有者がcontroller
     const lastKnight = fieldCard.attachedKnights[fieldCard.attachedKnights.length - 1] as AttachedKnight;
     if (lastKnight.playedBy) {
       fieldCard.controller = lastKnight.playedBy;
     }
   }
+}
+
+// attachedKnightsからJを検索（2や9でターゲットする用）
+function findKnightInAttachedKnights(
+  state: GameState, 
+  knightId: string, 
+  searchPlayerId: 'player1' | 'player2'
+): KnightTarget | null {
+  // 両方のフィールドを検索
+  for (const playerId of ['player1', 'player2'] as const) {
+    const playerData = state[playerId];
+    for (const fc of playerData.field) {
+      const knight = fc.attachedKnights.find(k => k.id === knightId);
+      if (knight) {
+        // このJが相手プレイヤーに属しているかチェック
+        const knightWithOwner = knight as AttachedKnight;
+        if (knightWithOwner.playedBy === searchPlayerId) {
+          return { knight, attachedTo: fc, owner: playerId };
+        }
+      }
+    }
+  }
+  return null;
+}
+
+// Jをattached Knightsから削除して捨て札/手札へ
+function removeKnightFromAttached(
+  state: GameState,
+  knightId: string
+): { found: boolean; attachedTo?: FieldCard } {
+  for (const playerId of ['player1', 'player2'] as const) {
+    const playerData = state[playerId];
+    for (const fc of playerData.field) {
+      const knightIndex = fc.attachedKnights.findIndex(k => k.id === knightId);
+      if (knightIndex !== -1) {
+        fc.attachedKnights.splice(knightIndex, 1);
+        recalculateControllerAfterKnightRemoval(fc);
+        return { found: true, attachedTo: fc };
+      }
+    }
+  }
+  return { found: false };
 }
 
 // ============================================
@@ -104,10 +149,8 @@ export function executeOneOff(
       if (target && 'card' in target) {
         const targetField = target as FieldCard;
         if (targetField.card.value > 0 && !hasQueen(opponent)) {
-          // フィールドから削除
           const actualTarget = opponent.field.find(fc => fc.card.id === targetField.card.id);
           if (actualTarget) {
-            // 付属Jを捨て札へ
             sendAttachedKnightsToScrap(newState, actualTarget);
           }
           opponent.field = opponent.field.filter(fc => fc.card.id !== targetField.card.id);
@@ -122,8 +165,22 @@ export function executeOneOff(
       // 相手の永続カード1枚を破壊（J, Q, K, 8永続）
       if (target && 'card' in target) {
         const targetField = target as FieldCard;
+        
+        // Jの場合、attachedKnightsをチェック
+        if (targetField.card.rank === 'J') {
+          // attachedKnightsからJを検索
+          const knightTarget = findKnightInAttachedKnights(newState, targetField.card.id, opponentId);
+          if (knightTarget) {
+            // Jを削除して捨て札へ
+            removeKnightFromAttached(newState, targetField.card.id);
+            newState.scrapPile.push({ ...targetField.card });
+            newState.message = `${targetField.card.rank}を破壊！`;
+            break;
+          }
+        }
+        
+        // 通常の永続カード（Q, K, 8永続）
         const isPermanent = 
-          targetField.card.rank === 'J' || 
           targetField.card.rank === 'Q' || 
           targetField.card.rank === 'K' || 
           (targetField.card.rank === '8' && targetField.card.value === 0);
@@ -132,14 +189,11 @@ export function executeOneOff(
           opponent.field = opponent.field.filter(fc => fc.card.id !== targetField.card.id);
           newState.scrapPile.push({ ...targetField.card });
           
-          // Kの場合はカウントを減らす
           if (targetField.card.rank === 'K') {
             opponent.kings--;
           }
           
-          // 8永続の場合は公開フラグをリセット
           resetGlassesEffect(newState, targetField.card, opponentId);
-          
           newState.message = `${targetField.card.rank}を破壊！`;
         }
       }
@@ -158,7 +212,7 @@ export function executeOneOff(
     }
 
     case '4': {
-      // 相手は手札を2枚捨てる（別フェーズで処理）
+      // 相手は手札を2枚捨てる
       newState.phase = 'opponentDiscard';
       newState.message = `${opponentId === 'player1' ? 'プレイヤー1' : 'プレイヤー2'}は手札を2枚捨ててください`;
       newState.scrapPile.push({ ...card });
@@ -179,17 +233,15 @@ export function executeOneOff(
     case '6': {
       // 全ての永続カードを破壊
       const isPermanent = (fc: FieldCard) => 
-        fc.card.rank === 'J' || 
         fc.card.rank === 'Q' || 
         fc.card.rank === 'K' || 
         (fc.card.rank === '8' && fc.card.value === 0);
       
-      // 両プレイヤーの永続カードを捨て札へ
+      // Q, K, 8永続を捨て札へ
       for (const fc of player.field) {
         if (isPermanent(fc)) {
           newState.scrapPile.push({ ...fc.card });
           if (fc.card.rank === 'K') player.kings--;
-          // 8永続の場合は公開フラグをリセット
           resetGlassesEffect(newState, fc.card, playerId);
         }
       }
@@ -197,7 +249,6 @@ export function executeOneOff(
         if (isPermanent(fc)) {
           newState.scrapPile.push({ ...fc.card });
           if (fc.card.rank === 'K') opponent.kings--;
-          // 8永続の場合は公開フラグをリセット
           resetGlassesEffect(newState, fc.card, opponentId);
         }
       }
@@ -206,7 +257,7 @@ export function executeOneOff(
       player.field = player.field.filter(fc => !isPermanent(fc));
       opponent.field = opponent.field.filter(fc => !isPermanent(fc));
       
-      // 騎士を破壊した場合、点数カードは元の持ち主に戻る
+      // 全てのattachedKnightsを破壊してcontrollerを戻す
       for (const fc of [...player.field, ...opponent.field]) {
         if (fc.attachedKnights.length > 0) {
           for (const knight of fc.attachedKnights) {
@@ -222,23 +273,34 @@ export function executeOneOff(
     }
 
     case '7': {
-      // 山札トップ2枚を見てどちらかをプレイ
+      // 山札トップを見てプレイまたは戻す
       if (newState.deck.length > 0) {
-        // 山札トップ2枚を取得（デッキから除去せずに見せる）
         const topCards = newState.deck.slice(0, Math.min(2, newState.deck.length));
         newState.phase = 'sevenChoice';
         newState.sevenChoices = topCards;
-        newState.message = '山札トップから1枚選んでプレイ';
-        newState.scrapPile.push({ ...card }); // 7自体は捨て札へ
+        newState.message = '山札トップから選択';
+        newState.scrapPile.push({ ...card });
         return newState;
       }
       break;
     }
 
     case '9': {
-      // 相手のカード1枚を手札に戻す（点数カード or 永続効果）
+      // 相手のカード1枚を手札に戻す（永続効果 or 点数カード、Jも可）
       if (target && 'card' in target) {
         const targetField = target as FieldCard;
+        
+        // Jの場合、attachedKnightsをチェック
+        if (targetField.card.rank === 'J') {
+          const knightTarget = findKnightInAttachedKnights(newState, targetField.card.id, opponentId);
+          if (knightTarget) {
+            // Jを削除して相手の手札へ
+            removeKnightFromAttached(newState, targetField.card.id);
+            opponent.hand.push({ ...targetField.card });
+            newState.message = `${targetField.card.rank}を手札に戻した！`;
+            break;
+          }
+        }
         
         // 魔術師で保護された点数カードは対象外
         if (targetField.card.value > 0 && hasQueen(opponent)) {
@@ -246,38 +308,20 @@ export function executeOneOff(
           break;
         }
         
-        // フィールドから実際のカードを探す
+        // フィールドから削除
         const actualTarget = opponent.field.find(fc => fc.card.id === targetField.card.id);
-        
         if (actualTarget) {
-          // 付属Jを捨て札へ（カードを手札に戻す時、Jは剥がれて捨て札へ）
           sendAttachedKnightsToScrap(newState, actualTarget);
         }
         
-        // フィールドから削除、手札に戻す
         opponent.field = opponent.field.filter(fc => fc.card.id !== targetField.card.id);
         opponent.hand.push({ ...targetField.card });
         
-        // Kの場合はカウントを減らす
         if (targetField.card.rank === 'K') {
           opponent.kings--;
         }
         
-        // 8永続の場合は公開フラグをリセット
         resetGlassesEffect(newState, targetField.card, opponentId);
-        
-        // Jが戻された場合、他のカードのattachedKnightsからも削除
-        if (targetField.card.rank === 'J') {
-          for (const fc of [...player.field, ...opponent.field]) {
-            const beforeLength = fc.attachedKnights.length;
-            fc.attachedKnights = fc.attachedKnights.filter(k => k.id !== targetField.card.id);
-            // Jが削除された場合、controllerを再計算
-            if (fc.attachedKnights.length < beforeLength) {
-              recalculateControllerAfterKnightRemoval(fc);
-            }
-          }
-        }
-        
         newState.message = `${targetField.card.rank}を手札に戻した！`;
       }
       break;
@@ -289,11 +333,8 @@ export function executeOneOff(
         const targetField = target as FieldCard;
         
         if (targetField.card.value > 0 && !hasQueen(opponent)) {
-          // フィールドから実際のカードを探す
           const actualTarget = opponent.field.find(fc => fc.card.id === targetField.card.id);
-          
           if (actualTarget) {
-            // 付属Jを捨て札へ
             sendAttachedKnightsToScrap(newState, actualTarget);
           }
           
@@ -309,7 +350,6 @@ export function executeOneOff(
   newState.scrapPile.push({ ...card });
   newState.consecutivePasses = 0;
 
-  // 勝利条件チェック
   const winner = checkWinCondition(newState);
   if (winner) {
     newState.winner = winner;
@@ -322,9 +362,7 @@ export function executeOneOff(
 }
 
 // ============================================
-// 騎士（J）- 最新のJのみが支配権を持つ
-// Jは「相手が支配している点数カード」に使える
-// カードが自分のフィールドにあっても、相手が支配していれば対象可
+// 騎士（J）
 // ============================================
 
 export function playKnight(
@@ -338,25 +376,19 @@ export function playKnight(
   const player = newState[playerId];
   const opponent = newState[opponentId];
 
-  // 対象が相手によって支配されている点数カードかチェック
   if (targetField.controller !== opponentId || targetField.card.value <= 0) {
     return { ...state, message: '対象は相手が支配する点数カードである必要があります' };
   }
 
-  // 魔術師で保護されている場合は使用不可（対象カードが相手のフィールドにある場合のみ）
   if (targetField.owner === opponentId && hasQueen(opponent)) {
     return { ...state, message: '魔術師に保護されています' };
   }
 
-  // 手札から削除
   player.hand = player.hand.filter(c => c.id !== knightCard.id);
 
-  // 対象のカードを両方のフィールドから探す
   const foundInPlayer = player.field.findIndex(fc => fc.card.id === targetField.card.id);
   const foundInOpponent = opponent.field.findIndex(fc => fc.card.id === targetField.card.id);
 
-  // 騎士を付けて支配者を変更（最新のJの所有者が支配）
-  // playedByを追加してどのプレイヤーが出したか記録
   const knightWithOwner: AttachedKnight = { ...knightCard, playedBy: playerId };
   
   if (foundInPlayer !== -1) {
@@ -370,7 +402,6 @@ export function playKnight(
   newState.message = `${targetField.card.rank}を略奪！`;
   newState.consecutivePasses = 0;
 
-  // 勝利条件チェック
   const winner = checkWinCondition(newState);
   if (winner) {
     newState.winner = winner;
@@ -399,30 +430,59 @@ export function executeScuttle(
 
   const scuttleResult = canScuttle(attackerCard, defenderField, hasQueen(opponent));
 
-  if (!scuttleResult.canScuttle) {
+  // 完全にブロックされた場合（魔術師保護など）
+  if (scuttleResult.result === 'blocked') {
     return { ...state, message: 'アタックできません' };
   }
 
-  // 手札から削除
+  // 手札から削除（全ケースで攻撃カードは消費される）
   player.hand = player.hand.filter(c => c.id !== attackerCard.id);
 
-  // スカトル成功時は常に相打ち（両方捨て札）
-  if (scuttleResult.result === 'mutual') {
-    // フィールドから実際のカードを探す
-    const actualDefender = opponent.field.find(fc => fc.card.id === defenderField.card.id);
-    
-    if (actualDefender) {
-      // 付属Jを捨て札へ
-      sendAttachedKnightsToScrap(newState, actualDefender);
-    }
-    
-    opponent.field = opponent.field.filter(fc => fc.card.id !== defenderField.card.id);
-    newState.scrapPile.push({ ...defenderField.card });
+  // 種族不利で失敗の場合：自分のカードのみ捨て札
+  if (scuttleResult.result === 'fail') {
     newState.scrapPile.push({ ...attackerCard });
-    newState.message = 'アタック成功！';
+    newState.message = 'アタック失敗！（種族不利）';
+    newState.consecutivePasses = 0;
+    return endTurn(newState);
+  }
+
+  // 成功ケース：相手のカードを破壊
+  const actualDefender = opponent.field.find(fc => fc.card.id === defenderField.card.id);
+  if (actualDefender) {
+    sendAttachedKnightsToScrap(newState, actualDefender);
+  }
+  
+  opponent.field = opponent.field.filter(fc => fc.card.id !== defenderField.card.id);
+  newState.scrapPile.push({ ...defenderField.card });
+  
+  // 種族有利(win)：攻撃側のカードは残る（手札には戻らないが捨て札にもならない）
+  // →いや、ルールブック再確認すると「相手のカードのみ捨て札」なので攻撃側は捨て札にならない
+  if (scuttleResult.result === 'win') {
+    // 攻撃側のカードは場に残る（点数カードとして自分のフィールドへ）
+    const fieldCard: FieldCard = {
+      card: { ...attackerCard },
+      attachedKnights: [],
+      owner: playerId,
+      controller: playerId,
+    };
+    player.field.push(fieldCard);
+    newState.message = 'アタック大成功！（種族有利）';
+  } else {
+    // 相打ち(mutual)：両方捨て札
+    newState.scrapPile.push({ ...attackerCard });
+    newState.message = 'アタック成功！（相打ち）';
   }
 
   newState.consecutivePasses = 0;
+
+  // 勝利条件チェック（種族有利で攻撃側が場に残る場合）
+  const winner = checkWinCondition(newState);
+  if (winner) {
+    newState.winner = winner;
+    newState.phase = 'gameOver';
+    newState.message = `${winner === 'player1' ? 'プレイヤー1' : 'プレイヤー2'}の勝利！`;
+    return newState;
+  }
 
   return endTurn(newState);
 }
@@ -436,7 +496,6 @@ export function playAsPoint(state: GameState, card: Card): GameState {
   newState.message = `${card.rank}を配置！`;
   newState.consecutivePasses = 0;
 
-  // 勝利条件チェック
   const winner = checkWinCondition(newState);
   if (winner) {
     newState.winner = winner;
@@ -455,7 +514,6 @@ export function playAsPoint(state: GameState, card: Card): GameState {
 export function playAsPermanent(state: GameState, card: Card): GameState {
   let newState = playCardToField(state, state.currentPlayer, card, true);
   
-  // 8の場合は相手の手札を公開
   if (card.rank === '8') {
     const opponentId = getOpponent(state.currentPlayer);
     newState.opponentHandRevealed[opponentId] = true;
@@ -468,7 +526,6 @@ export function playAsPermanent(state: GameState, card: Card): GameState {
   
   newState.consecutivePasses = 0;
 
-  // 勝利条件チェック
   const winner = checkWinCondition(newState);
   if (winner) {
     newState.winner = winner;

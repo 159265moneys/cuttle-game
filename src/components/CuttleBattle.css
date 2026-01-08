@@ -339,6 +339,105 @@
 }
 
 /* 山札カード */
+/* ====================================
+   山札 - 裏面カード積み重ね表示
+   ==================================== */
+.cuttle-pile-stack.deck-pile {
+    justify-content: flex-start;
+}
+
+.cuttle-deck-card-back {
+    width: auto;
+    aspect-ratio: 5 / 7;
+    height: 100%;
+    background: linear-gradient(135deg, #3a2a25 0%, #201510 100%);
+    border: 2px solid #c9a227;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+}
+
+.cuttle-deck-card-back .card-back-parchment {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, 
+        #3a2a25 0%, 
+        #281a15 50%, 
+        #201510 100%
+    );
+    opacity: 0.9;
+}
+
+.cuttle-deck-card-back .card-back-main {
+    position: absolute;
+    width: 50%;
+    height: 40%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #c9a227;
+    filter: drop-shadow(0 0 3px #c9a227);
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+}
+
+.cuttle-deck-card-back .card-back-suit {
+    position: absolute;
+    width: 12%;
+    height: 12%;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+}
+
+.cuttle-deck-card-back .card-back-suit.top-left {
+    top: 4%;
+    left: 4%;
+    background-color: var(--race-human);
+    transform: scaleX(-1);
+}
+
+.cuttle-deck-card-back .card-back-suit.top-right {
+    top: 4%;
+    right: 4%;
+    background-color: var(--race-elf);
+}
+
+.cuttle-deck-card-back .card-back-suit.bottom-left {
+    bottom: 4%;
+    left: 4%;
+    background-color: var(--race-goblin);
+    transform: rotate(180deg) scaleX(-1);
+}
+
+.cuttle-deck-card-back .card-back-suit.bottom-right {
+    bottom: 4%;
+    right: 4%;
+    background-color: var(--race-demon);
+    transform: rotate(180deg);
+}
+
+.cuttle-deck-card-back .card-back-frame {
+    position: absolute;
+    inset: 3%;
+    border: 1px solid rgba(201, 162, 39, 0.3);
+    border-radius: 3px;
+    pointer-events: none;
+}
+
+/* 旧山札カード（空表示用） */
 .cuttle-deck-card {
     width: auto;
     aspect-ratio: 5 / 7;
@@ -365,18 +464,124 @@
     transform: scale(0.95);
 }
 
-.cuttle-deck-card .pile-title {
-    font-size: 0.65rem;
-    font-weight: 600;
-    color: #c9a227;
-}
-
 .cuttle-deck-card .pile-count {
     font-size: 0.55rem;
     color: #8a6f1a;
 }
 
-/* 墓地カード */
+/* 枚数オーバーレイ（カード上に表示） */
+.pile-count-overlay {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    font-size: 0.55rem;
+    color: #c9a227;
+    font-weight: 700;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 1px 4px;
+    border-radius: 3px;
+    z-index: 10;
+}
+
+/* ====================================
+   墓地 - 最新カードの表面表示
+   ==================================== */
+.cuttle-pile-stack.scrap-pile {
+    justify-content: flex-end;
+}
+
+/* 墓地の裏面カード（下に重なる） */
+.cuttle-scrap-card-back {
+    width: auto;
+    aspect-ratio: 5 / 7;
+    height: 100%;
+    background: linear-gradient(135deg, #2a1a1a, #1a1010);
+    border: 2px solid #5a3a3a;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.cuttle-scrap-card-back .card-back-parchment {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, #2a1a1a, #1a1010);
+}
+
+.cuttle-scrap-card-back .card-back-frame {
+    position: absolute;
+    inset: 3%;
+    border: 1px solid rgba(90, 58, 58, 0.4);
+    border-radius: 3px;
+}
+
+/* 墓地の最上面カード（表向き） */
+.cuttle-scrap-card-top {
+    position: relative;
+    width: auto;
+    aspect-ratio: 5 / 7;
+    height: 100%;
+    background: transparent;
+    border: 2px solid rgba(90, 58, 58, 0.8);
+    border-radius: 6px;
+    overflow: hidden;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+/* 墓地カードの種族別ボーダー */
+.cuttle-scrap-card-top.suit-elf { 
+    border-color: var(--race-elf); 
+    box-shadow: 0 0 4px var(--race-elf-glow);
+}
+.cuttle-scrap-card-top.suit-goblin { 
+    border-color: var(--race-goblin); 
+    box-shadow: 0 0 4px var(--race-goblin-glow);
+}
+.cuttle-scrap-card-top.suit-human { 
+    border-color: var(--race-human); 
+    box-shadow: 0 0 4px var(--race-human-glow);
+}
+.cuttle-scrap-card-top.suit-demon { 
+    border-color: var(--race-demon); 
+    box-shadow: 0 0 4px var(--race-demon-glow);
+}
+
+/* 墓地カード用のランク表示 */
+.card-rank.pile {
+    font-size: 0.55rem;
+}
+
+.card-rank.pile.top-left {
+    top: 2px;
+    left: 3px;
+}
+
+.card-rank.pile.bottom-right {
+    bottom: 2px;
+    right: 3px;
+}
+
+/* 墓地カード用の絵札イラスト */
+.card-face-art.pile {
+    width: 65%;
+    height: 50%;
+    top: 48%;
+}
+
+/* 墓地カード用のスート配置 */
+.card-pips.pile {
+    top: 14%;
+    left: 18%;
+    right: 18%;
+    bottom: 18%;
+}
+
+.card-pip.pile {
+    width: 7px;
+    height: 7px;
+}
+
+/* 旧墓地カード（空表示用） */
 .cuttle-scrap-card {
     width: auto;
     aspect-ratio: 5 / 7;
@@ -2040,5 +2245,36 @@
 
 .seven-card-effect {
     color: #7aa088;
+}
+
+/* 7のオプションBボタン */
+.seven-option-buttons {
+    display: flex;
+    justify-content: center;
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(120, 90, 50, 0.4);
+}
+
+.seven-option-b-btn {
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #2a3540, #1a2530);
+    border: 2px solid #4a6a8a;
+    border-radius: 6px;
+    color: #8ac0e0;
+    font-family: 'Cinzel', serif;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.seven-option-b-btn:hover {
+    background: linear-gradient(135deg, #3a4550, #2a3540);
+    border-color: #6a8aaa;
+    box-shadow: 0 0 10px rgba(100, 150, 200, 0.3);
+}
+
+.seven-option-b-btn:active {
+    transform: scale(0.98);
 }
 

@@ -112,11 +112,29 @@ function App() {
     setGameState(discardCards(gameState, cards));
   }, [gameState]);
 
+  // 7のオプションB: 山札に戻して手札からプレイ
+  const handleSevenOptionB = useCallback(() => {
+    if (gameState.phase !== 'sevenChoice' || !gameState.sevenChoices) return;
+    
+    // sevenChoices のカードを山札の一番下に戻す
+    const newDeck = [...gameState.deck.filter(c => !gameState.sevenChoices!.some(sc => sc.id === c.id))];
+    // 山札の一番下に追加
+    newDeck.push(...gameState.sevenChoices);
+    
+    setGameState(prev => ({
+      ...prev,
+      deck: newDeck,
+      phase: 'sevenOptionB', // 特殊フェーズ: 手札からプレイ
+      sevenChoices: undefined,
+      message: '手札から1枚プレイしてください',
+    }));
+  }, [gameState]);
+
   // カード選択
   const handleCardSelect = useCallback((card: CardType) => {
     if (gameState.currentPlayer === 'player2' || isProcessing) return;
 
-    // 7の効果: 山札トップから選択した場合
+    // 7の効果: 山札トップから選択した場合（オプションA）
     if (gameState.phase === 'sevenChoice' && gameState.sevenChoices) {
       // 選択したカードが sevenChoices にあるか確認
       const isSevenChoice = gameState.sevenChoices.some(c => c.id === card.id);
@@ -321,6 +339,7 @@ function App() {
       onAction={handleAction}
       onDirectAction={handleDirectAction}
       onDiscard={handleDiscard}
+      onSevenOptionB={handleSevenOptionB}
       onCancel={handleCancel}
       onRestart={handleRestart}
       isCPUTurn={gameState.currentPlayer === 'player2'}

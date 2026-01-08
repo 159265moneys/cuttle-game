@@ -54,7 +54,8 @@ export type GamePhase =
   | 'selectAction'   // アクション選択中
   | 'selectTarget'   // ターゲット選択中
   | 'opponentDiscard'// 相手が手札を捨てる（4の効果）
-  | 'sevenChoice'    // 7の選択
+  | 'sevenChoice'    // 7の選択（山札トップ2枚から選ぶ）
+  | 'sevenOptionB'   // 7のオプションB（手札からプレイ）
   | 'gameOver';      // ゲーム終了
 
 // アクションの種類
