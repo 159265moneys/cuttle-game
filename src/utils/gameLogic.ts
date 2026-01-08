@@ -223,16 +223,19 @@ export function canScuttle(
 }
 
 // ============================================
-// 点数計算
+// 点数計算（両方のフィールドからcontrollerが自分のカードを合計）
 // ============================================
 
-export function calculatePlayerPoints(player: Player): number {
+export function calculatePlayerPointsFromState(state: GameState, playerId: 'player1' | 'player2'): number {
   let points = 0;
   
-  for (const fieldCard of player.field) {
+  // 両プレイヤーのフィールドを確認
+  const allFieldCards = [...state.player1.field, ...state.player2.field];
+  
+  for (const fieldCard of allFieldCards) {
     // 自分が支配しているカードの点数をカウント
     // 永続効果として出した8は value=0 なのでカウントされない
-    if (fieldCard.controller === player.id && fieldCard.card.value > 0) {
+    if (fieldCard.controller === playerId && fieldCard.card.value > 0) {
       points += fieldCard.card.value;
     }
   }
@@ -240,10 +243,21 @@ export function calculatePlayerPoints(player: Player): number {
   return points;
 }
 
-// 勝利条件チェック
+// 後方互換性のため（単体Playerからは計算できないのでstateが必要）
+export function calculatePlayerPoints(player: Player): number {
+  let points = 0;
+  for (const fieldCard of player.field) {
+    if (fieldCard.controller === player.id && fieldCard.card.value > 0) {
+      points += fieldCard.card.value;
+    }
+  }
+  return points;
+}
+
+// 勝利条件チェック（両フィールドから正確に計算）
 export function checkWinCondition(state: GameState): 'player1' | 'player2' | null {
-  const p1Points = calculatePlayerPoints(state.player1);
-  const p2Points = calculatePlayerPoints(state.player2);
+  const p1Points = calculatePlayerPointsFromState(state, 'player1');
+  const p2Points = calculatePlayerPointsFromState(state, 'player2');
   
   const p1Target = WINNING_POINTS[Math.min(state.player1.kings, 4)];
   const p2Target = WINNING_POINTS[Math.min(state.player2.kings, 4)];
