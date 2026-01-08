@@ -1584,7 +1584,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
       {/* 7の効果: 山札トップ2枚から選択 */}
       {gameState.phase === 'sevenChoice' && gameState.sevenChoices && (
         <div className="cuttle-action-modal seven-choice-modal">
-          <div className="action-modal-content">
+          <div className="action-modal-content large">
             <div className="action-modal-title">
               7の効果
             </div>
@@ -1593,45 +1593,64 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
               【B】山札に戻して手札からプレイ
             </div>
             <div className="seven-choice-cards">
-              {gameState.sevenChoices.map((card) => (
-                <div
-                  key={`seven-${card.id}`}
-                  className="seven-choice-card"
-                  onClick={() => {
-                    onCardSelect(card);
-                    // 選択後の処理はApp.tsx側で
-                  }}
-                >
-                  <div className="card-parchment" />
-                  {isFaceCard(card.rank) ? (
-                    <div
-                      className="card-face-art"
-                      style={getFaceMaskStyle(card.race, card.rank)}
-                    />
-                  ) : (
-                    <div className="card-pips">
-                      {PIP_LAYOUTS[card.rank]?.map((pip, j) => (
+              {gameState.sevenChoices.map((card) => {
+                const pipLayout = PIP_LAYOUTS[card.rank];
+                return (
+                  <div
+                    key={`seven-${card.id}`}
+                    className={`seven-choice-card-wrapper ${getSuitClass(card)}`}
+                    onClick={() => {
+                      onCardSelect(card);
+                    }}
+                  >
+                    {/* カード本体 */}
+                    <div className={`seven-choice-card ${getSuitClass(card)}`}>
+                      <div className="card-parchment" />
+                      {isFaceCard(card.rank) ? (
                         <div
-                          key={j}
-                          className={`card-pip ${pip.inverted ? 'inverted' : ''}`}
-                          style={{
-                            left: `${pip.x}%`,
-                            top: `${pip.y}%`,
-                            ...getSuitMaskStyle(card.race),
-                          }}
+                          className="card-face-art"
+                          style={getFaceMaskStyle(card.race, card.rank)}
                         />
-                      ))}
+                      ) : (
+                        <div className="card-pips">
+                          {pipLayout?.map((pip, j) => (
+                            <div
+                              key={j}
+                              className={`card-pip ${pip.inverted ? 'inverted' : ''}`}
+                              style={{
+                                left: `${pip.x}%`,
+                                top: `${pip.y}%`,
+                                ...getSuitMaskStyle(card.race),
+                              }}
+                            />
+                          ))}
+                        </div>
+                      )}
+                      <div 
+                        className="card-suit-icon corner top-left"
+                        style={getSuitMaskStyle(card.race)}
+                      />
+                      <div 
+                        className="card-suit-icon corner bottom-right"
+                        style={getSuitMaskStyle(card.race)}
+                      />
+                      <div className="card-rank top-left">{card.rank}</div>
+                      <div className="card-rank bottom-right">{card.rank}</div>
                     </div>
-                  )}
-                  <div className="card-rank top-left">{card.rank}</div>
-                  <div className="card-rank bottom-right">{card.rank}</div>
-                  <div className="seven-card-info">
-                    <span>{card.rank}</span>
-                    <span className="seven-card-race">{RACE_NAMES[card.race]}</span>
-                    <span className="seven-card-effect">{getCardEffect(card)}</span>
+                    {/* 効果説明ボックス */}
+                    <div className={`seven-card-effect-box ${getSuitClass(card)}`}>
+                      <div className="effect-header">
+                        <div 
+                          className="effect-icon"
+                          style={getSuitMaskStyle(card.race)}
+                        />
+                        <span className="effect-title">{card.rank} - {RACE_NAMES[card.race]}</span>
+                      </div>
+                      <div className="effect-text">{getCardEffect(card)}</div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             <div className="seven-option-buttons">
               <button 
