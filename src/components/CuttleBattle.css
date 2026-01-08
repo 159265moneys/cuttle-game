@@ -414,19 +414,21 @@
     color: #7a5a5a;
 }
 
-/* 中央メッセージボックス */
+/* 中央メッセージボックス - スクロール可能、最新が下 */
 .cuttle-action-log {
     flex: 1;
     height: 100%;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    align-items: stretch;
+    justify-content: flex-end;
     padding: 4px 10px;
     background: rgba(0, 0, 0, 0.6);
     border-radius: 8px;
     margin: 0 8px;
     border: 1px solid rgba(201, 162, 39, 0.2);
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .cuttle-action-log .log-player {
@@ -1742,8 +1744,6 @@
     flex-direction: column;
     gap: 2px;
     width: 100%;
-    max-height: 100%;
-    overflow-y: auto;
 }
 
 .log-entry {

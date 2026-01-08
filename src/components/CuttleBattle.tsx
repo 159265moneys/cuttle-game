@@ -215,6 +215,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   // ログシステム
   const [actionLogs, setActionLogs] = useState<LogEntry[]>([]);
   const logIdRef = useRef(0);
+  const logContainerRef = useRef<HTMLDivElement>(null);
   
   // refs
   const screenRef = useRef<HTMLDivElement>(null);
@@ -226,14 +227,34 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   const player = gameState.player1;
   const enemy = gameState.player2;
   
-  // ログ追加関数
+  // ログ追加関数（全ログ保持、最新が下）
   const addLog = useCallback((playerType: 'player1' | 'player2', message: string) => {
     logIdRef.current += 1;
-    setActionLogs(prev => {
-      const newLogs = [...prev, { id: logIdRef.current, player: playerType, message }];
-      return newLogs.slice(-5); // 最新5件のみ
-    });
+    setActionLogs(prev => [...prev, { id: logIdRef.current, player: playerType, message }]);
   }, []);
+  
+  // ログ追加時に自動スクロール
+  useEffect(() => {
+    if (logContainerRef.current) {
+      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+    }
+  }, [actionLogs]);
+  
+  // ゲーム終了時にログクリア
+  useEffect(() => {
+    if (gameState.phase === 'gameOver') {
+      // ゲーム終了時はログをクリアしない（結果確認用）
+      // リスタート時にクリアする
+    }
+  }, [gameState.phase]);
+  
+  // ゲームリスタート検知（ターン1に戻った時）
+  useEffect(() => {
+    if (gameState.turnCount === 1 && actionLogs.length > 0) {
+      setActionLogs([]);
+      logIdRef.current = 0;
+    }
+  }, [gameState.turnCount]);
   
   // ゲーム状態の変化を監視してログを追加
   const prevPhaseRef = useRef(gameState.phase);
@@ -1151,8 +1172,8 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
           )}
         </div>
         
-        {/* アクションログ - 最新5件表示 */}
-        <div className="cuttle-action-log">
+        {/* アクションログ - スクロール可能、最新が下 */}
+        <div className="cuttle-action-log" ref={logContainerRef}>
           {actionLogs.length === 0 ? (
             <span className="log-action">ゲーム開始</span>
           ) : (
@@ -1381,8 +1402,8 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
                 </button>
               )}
               
-              {/* スカトルボタン（点数カードで相手の点数カードを破壊） */}
-              {pendingCard.value > 0 && pendingCard.value >= pendingTarget.card.value && (
+              {/* スカトルボタン（点数カードで相手の点数カードを破壊 - 両方が点数カードの場合のみ） */}
+              {pendingCard.value > 0 && pendingTarget.card.value > 0 && pendingCard.value >= pendingTarget.card.value && (
                 <button className="action-btn scuttle" onClick={executeScuttle}>
                   スカトル（破壊）
                 </button>
