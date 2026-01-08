@@ -948,7 +948,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
               className="effect-icon"
               style={getSuitMaskStyle(card.race)}
             />
-            <div className="effect-title">{card.rank} - {RACE_NAMES[card.race]}</div>
+            <div className="effect-title">- {card.rank}</div>
           </div>
           <div className="effect-text">{getCardEffect(card)}</div>
         </div>
@@ -1662,7 +1662,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
                           className="effect-icon"
                           style={getSuitMaskStyle(card.race)}
                         />
-                        <span className="effect-title">{card.rank} - {RACE_NAMES[card.race]}</span>
+                        <span className="effect-title">- {card.rank}</span>
                       </div>
                       <div className="effect-text">{getCardEffect(card)}</div>
                     </div>

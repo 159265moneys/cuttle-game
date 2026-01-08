@@ -1520,10 +1520,13 @@
 }
 
 .preview-effect-box .effect-text {
-    font-size: 0.95rem;
+    font-size: 0.7rem;
     color: rgba(220, 200, 160, 0.95);
-    line-height: 1.5;
+    line-height: 1.3;
     text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* スート色 - 枠線と発光 */
