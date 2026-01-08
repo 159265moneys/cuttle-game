@@ -318,7 +318,7 @@ export function executeScuttle(
   const scuttleResult = canScuttle(attackerCard, defenderField, hasQueen(opponent));
 
   if (!scuttleResult.canScuttle) {
-    return { ...state, message: 'スカトルできません' };
+    return { ...state, message: 'アタックできません' };
   }
 
   // 手札から削除
@@ -329,7 +329,7 @@ export function executeScuttle(
     opponent.field = opponent.field.filter(fc => fc.card.id !== defenderField.card.id);
     newState.scrapPile.push({ ...defenderField.card });
     newState.scrapPile.push({ ...attackerCard });
-    newState.message = 'スカトル成功！';
+    newState.message = 'アタック成功！';
   }
 
   newState.consecutivePasses = 0;

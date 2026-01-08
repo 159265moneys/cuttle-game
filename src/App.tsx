@@ -282,7 +282,7 @@ function App() {
           ...prev,
           phase: 'selectTarget',
           selectedAction: 'scuttle',
-          message: 'スカトルする点数カードを選択',
+          message: 'アタックする点数カードを選択',
         }));
         break;
       }

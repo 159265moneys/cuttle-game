@@ -381,15 +381,15 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
     setPendingTarget(null);
   }, []);
   
-  // スカトル実行（直接アクションを使用）
-  const executeScuttle = useCallback(() => {
+  // アタック実行（直接アクションを使用）
+  const executeAttack = useCallback(() => {
     if (!pendingCard || !pendingTarget) return;
     
     // 直接アクション実行（状態のクロージャ問題を回避）
     const attackerRace = RACE_NAMES[pendingCard.race] || pendingCard.race;
     const targetRace = RACE_NAMES[pendingTarget.card.race] || pendingTarget.card.race;
     onDirectAction('scuttle', pendingCard, pendingTarget);
-    addLog('player1', `${attackerRace}${pendingCard.rank}で${targetRace}${pendingTarget.card.rank}をスカトル`);
+    addLog('player1', `${attackerRace}${pendingCard.rank}で${targetRace}${pendingTarget.card.rank}にアタック`);
     
     closeActionModal();
   }, [pendingCard, pendingTarget, onDirectAction, addLog, closeActionModal]);
@@ -493,7 +493,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
         }
       }
       
-      // 敵の点数エリア（スカトル/Jターゲット）
+      // 敵の点数エリア（アタック/Jターゲット）
       if (enemyPointsRef.current) {
         const rect = enemyPointsRef.current.getBoundingClientRect();
         if (current.x >= rect.left && current.x <= rect.right &&
@@ -1432,10 +1432,10 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
                 </button>
               )}
               
-              {/* スカトルボタン（点数カードで相手の点数カードを破壊 - 両方が点数カードの場合のみ） */}
+              {/* アタックボタン（点数カードで相手の点数カードを破壊 - 両方が点数カードの場合のみ） */}
               {pendingCard.value > 0 && pendingTarget.card.value > 0 && pendingCard.value >= pendingTarget.card.value && (
-                <button className="action-btn scuttle" onClick={executeScuttle}>
-                  スカトル（破壊）
+                <button className="action-btn scuttle" onClick={executeAttack}>
+                  アタック
                 </button>
               )}
               
