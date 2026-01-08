@@ -344,19 +344,28 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   const playerWinTarget = WINNING_POINTS[Math.min(player.kings, 4)];
   const enemyWinTarget = WINNING_POINTS[Math.min(enemy.kings, 4)];
   
-  // 永続効果カード（8, J, Q, K）
+  // 永続効果カード（8, J, Q, K）- ドロップ判定用
   const isPermanentEffect = (card: Card) => {
     return ['8', 'J', 'Q', 'K'].includes(card.rank);
   };
   
-  // 点数カード
+  // 点数カード（value > 0）
   const isPointCard = (fc: FieldCard) => fc.card.value > 0;
+  
+  // 永続効果として場に出ているカード（8はvalue=0の時のみ永続）
+  const isFieldPermanent = (fc: FieldCard) => {
+    // J, Q, K は常に永続効果
+    if (['J', 'Q', 'K'].includes(fc.card.rank)) return true;
+    // 8 は value=0 の時のみ永続効果（点数として出した場合は value=8）
+    if (fc.card.rank === '8' && fc.card.value === 0) return true;
+    return false;
+  };
   
   // フィールドを分類
   const playerPointCards = player.field.filter(isPointCard);
-  const playerEffectCards = player.field.filter(fc => !isPointCard(fc) || isPermanentEffect(fc.card));
+  const playerEffectCards = player.field.filter(fc => isFieldPermanent(fc));
   const enemyPointCards = enemy.field.filter(isPointCard);
-  const enemyEffectCards = enemy.field.filter(fc => !isPointCard(fc) || isPermanentEffect(fc.card));
+  const enemyEffectCards = enemy.field.filter(fc => isFieldPermanent(fc));
   
   // 閲覧モード終了
   const hideBrowsing = useCallback(() => {
@@ -974,7 +983,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   
   // 効果カードをレンダリング（フルデザイン）
   const renderEffectCards = (cards: FieldCard[]) => {
-    const permanents = cards.filter(fc => isPermanentEffect(fc.card));
+    const permanents = cards.filter(fc => isFieldPermanent(fc));
     
     if (permanents.length === 0) {
       return <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem' }}>効果なし</span>;
