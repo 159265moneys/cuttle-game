@@ -82,7 +82,7 @@ function App() {
     }
   }, [gameState, isProcessing]);
 
-  // 4の効果で自動的にCPUが手札を捨てる
+  // 4の効果で自動的にCPUが手札を捨てる（プレイヤーが4を使った場合）
   useEffect(() => {
     if (
       gameState.phase === 'opponentDiscard' && 
@@ -104,6 +104,12 @@ function App() {
         }, 500);
       }
     }
+  }, [gameState]);
+  
+  // プレイヤーが手札を捨てる（CPUが4を使った場合）
+  const handleDiscard = useCallback((cards: CardType[]) => {
+    if (gameState.phase !== 'opponentDiscard' || gameState.currentPlayer !== 'player2') return;
+    setGameState(discardCards(gameState, cards));
   }, [gameState]);
 
   // カード選択
@@ -314,6 +320,7 @@ function App() {
       onScrapSelect={handleScrapSelect}
       onAction={handleAction}
       onDirectAction={handleDirectAction}
+      onDiscard={handleDiscard}
       onCancel={handleCancel}
       onRestart={handleRestart}
       isCPUTurn={gameState.currentPlayer === 'player2'}

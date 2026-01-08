@@ -1771,6 +1771,149 @@
     color: #e8e0d4;
 }
 
+/* ========== 8永続効果で公開された敵の手札 ========== */
+.cuttle-enemy-card-revealed {
+    position: absolute;
+    left: 50%;
+    top: 18px;
+    width: 48px;
+    aspect-ratio: 5 / 7;
+    transform-origin: center bottom;
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+    border: 1px solid #8a7a6a;
+}
+
+.cuttle-enemy-card-revealed .card-parchment {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+
+.cuttle-enemy-card-revealed .card-rank {
+    font-size: 0.55rem;
+}
+
+.cuttle-enemy-card-revealed .card-face-art {
+    width: 60%;
+    aspect-ratio: 1;
+    top: 22%;
+    left: 20%;
+}
+
+.cuttle-enemy-card-revealed .card-pips {
+    position: absolute;
+    top: 15%;
+    left: 15%;
+    width: 70%;
+    height: 70%;
+}
+
+.cuttle-enemy-card-revealed .card-pip {
+    width: 10px;
+    height: 10px;
+}
+
+.revealed-mark {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    font-size: 0.5rem;
+    opacity: 0.7;
+}
+
+/* ========== 4の効果で手札を捨てるモーダル ========== */
+.discard-modal .action-modal-content {
+    max-width: 340px;
+}
+
+.discard-count {
+    color: #c9a227;
+    font-weight: bold;
+}
+
+.discard-choice-cards {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 15px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.discard-choice-card {
+    position: relative;
+    width: 60px;
+    aspect-ratio: 5 / 7;
+    border-radius: 6px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    border: 2px solid #5a4a3a;
+}
+
+.discard-choice-card:hover {
+    transform: scale(1.05);
+}
+
+.discard-choice-card.selected {
+    border-color: #e63946;
+    box-shadow: 0 0 12px rgba(230, 57, 70, 0.6);
+    transform: scale(1.05);
+}
+
+.discard-choice-card .card-parchment {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+
+.discard-choice-card .card-rank {
+    font-size: 0.55rem;
+}
+
+.discard-choice-card .card-face-art {
+    width: 60%;
+    aspect-ratio: 1;
+    top: 22%;
+    left: 20%;
+}
+
+.discard-choice-card .card-pips {
+    position: absolute;
+    top: 15%;
+    left: 15%;
+    width: 70%;
+    height: 70%;
+}
+
+.discard-choice-card .card-pip {
+    width: 10px;
+    height: 10px;
+}
+
+.selected-mark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.5rem;
+    color: #e63946;
+    text-shadow: 0 0 8px rgba(0, 0, 0, 0.8);
+    pointer-events: none;
+}
+
+.action-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 /* ========== 略奪オーバーレイ（Jで奪ったカード） ========== */
 .stolen-overlay {
     position: absolute;
@@ -1778,7 +1921,6 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(80, 30, 100, 0.6);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -1786,12 +1928,35 @@
     pointer-events: none;
 }
 
+/* プレイヤーが敵のカードを支配中 - 金色 */
+.stolen-overlay.player-control {
+    background: rgba(100, 80, 30, 0.6);
+}
+
+.stolen-overlay.player-control .stolen-j {
+    color: #ffd700;
+    text-shadow: 0 0 10px #cc9900, 0 0 20px #997700;
+}
+
+/* 敵がプレイヤーのカードを支配中 - 紫/赤 */
+.stolen-overlay.enemy-control {
+    background: rgba(100, 30, 50, 0.6);
+}
+
+.stolen-overlay.enemy-control .stolen-j {
+    color: #ff6b8a;
+    text-shadow: 0 0 10px #cc3366, 0 0 20px #992244;
+}
+
 .stolen-j {
     font-size: 2.5rem;
     font-weight: bold;
-    color: #d4a8ff;
-    text-shadow: 0 0 10px #8844cc, 0 0 20px #662299;
     font-family: 'Cinzel Decorative', serif;
+}
+
+/* 敵に支配されている自分のカード - ハイライト */
+.cuttle-field-card-full.stolen-by-enemy {
+    box-shadow: 0 0 8px rgba(255, 50, 100, 0.5);
 }
 
 /* ========== 7の効果モーダル ========== */

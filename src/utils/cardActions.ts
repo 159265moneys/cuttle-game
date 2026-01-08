@@ -243,7 +243,9 @@ export function executeOneOff(
 }
 
 // ============================================
-// 騎士（J）
+// 騎士（J）- 最新のJのみが支配権を持つ
+// Jは「相手が支配している点数カード」に使える
+// カードが自分のフィールドにあっても、相手が支配していれば対象可
 // ============================================
 
 export function playKnight(
@@ -257,19 +259,30 @@ export function playKnight(
   const player = newState[playerId];
   const opponent = newState[opponentId];
 
-  // 魔術師で保護されている場合は使用不可
-  if (hasQueen(opponent)) {
+  // 対象が相手によって支配されている点数カードかチェック
+  if (targetField.controller !== opponentId || targetField.card.value <= 0) {
+    return { ...state, message: '対象は相手が支配する点数カードである必要があります' };
+  }
+
+  // 魔術師で保護されている場合は使用不可（対象カードが相手のフィールドにある場合のみ）
+  if (targetField.owner === opponentId && hasQueen(opponent)) {
     return { ...state, message: '魔術師に保護されています' };
   }
 
   // 手札から削除
   player.hand = player.hand.filter(c => c.id !== knightCard.id);
 
-  // 対象のカードに騎士を付けて支配者を変更
-  const targetIndex = opponent.field.findIndex(fc => fc.card.id === targetField.card.id);
-  if (targetIndex !== -1) {
-    opponent.field[targetIndex].attachedKnights.push({ ...knightCard });
-    opponent.field[targetIndex].controller = playerId;
+  // 対象のカードを両方のフィールドから探す
+  const foundInPlayer = player.field.findIndex(fc => fc.card.id === targetField.card.id);
+  const foundInOpponent = opponent.field.findIndex(fc => fc.card.id === targetField.card.id);
+
+  // 騎士を付けて支配者を変更（最新のJの所有者が支配）
+  if (foundInPlayer !== -1) {
+    player.field[foundInPlayer].attachedKnights.push({ ...knightCard });
+    player.field[foundInPlayer].controller = playerId;
+  } else if (foundInOpponent !== -1) {
+    opponent.field[foundInOpponent].attachedKnights.push({ ...knightCard });
+    opponent.field[foundInOpponent].controller = playerId;
   }
 
   newState.message = `${targetField.card.rank}を略奪！`;

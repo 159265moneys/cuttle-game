@@ -16,6 +16,7 @@ interface CuttleBattleProps {
   onScrapSelect: (card: Card) => void;
   onAction: (action: ActionType) => void;
   onDirectAction: (action: ActionType, card: Card, target?: FieldCard) => void;
+  onDiscard: (cards: Card[]) => void; // 4の効果で手札を捨てる
   onCancel: () => void;
   onRestart: () => void;
   isCPUTurn: boolean;
@@ -190,6 +191,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   onScrapSelect,
   onAction,
   onDirectAction,
+  onDiscard,
   onRestart,
   isCPUTurn,
 }) => {
@@ -200,6 +202,9 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   const [touchCurrent, setTouchCurrent] = useState({ x: 0, y: 0 });
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const [showScrapModal, setShowScrapModal] = useState(false);
+  
+  // 4の効果で手札を捨てる用
+  const [discardSelection, setDiscardSelection] = useState<Card[]>([]);
   
   // アクション確認モーダル用
   const [pendingCard, setPendingCard] = useState<Card | null>(null);
@@ -484,6 +489,16 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
         }
       });
       
+      // 自分の点数カード個別判定（敵に支配されているカードへのJ使用用）
+      const playerPointCardElements = document.querySelectorAll('.cuttle-player-points-area .cuttle-field-card-wrapper');
+      playerPointCardElements.forEach((card, i) => {
+        const rect = card.getBoundingClientRect();
+        if (current.x >= rect.left && current.x <= rect.right &&
+            current.y >= rect.top && current.y <= rect.bottom) {
+          newTarget = `playerCard:${i}`;
+        }
+      });
+      
       setDropTarget(newTarget);
     }
   }, [mode, touchStart, selectedIndex]);
@@ -551,6 +566,19 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
             const canUseEffect = ['2', '9'].includes(card.rank);
             
             if (canUseEffect) {
+              setPendingCard(card);
+              setPendingTarget(targetFC);
+              setShowActionModal(true);
+            }
+          }
+        } else if (dropTarget.startsWith('playerCard:')) {
+          // 自分の点数カードへのドロップ → J でカウンター略奪
+          const targetIndex = parseInt(dropTarget.split(':')[1]);
+          const targetFC = playerPointCards[targetIndex];
+          
+          if (targetFC && card.rank === 'J') {
+            // 敵に支配されている自分のカードのみ対象可
+            if (targetFC.controller === 'player2') {
               setPendingCard(card);
               setPendingTarget(targetFC);
               setShowActionModal(true);
@@ -818,8 +846,12 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
     return (
       <div className="cuttle-field-cards-full">
         {cards.map((fc, i) => {
-          const isDropTarget = dropTarget === `enemyCard:${i}` && isEnemy;
+          const isDropTargetEnemy = dropTarget === `enemyCard:${i}` && isEnemy;
+          const isDropTargetPlayer = dropTarget === `playerCard:${i}` && !isEnemy;
+          const isDropTarget = isDropTargetEnemy || isDropTargetPlayer;
           const pipLayout = PIP_LAYOUTS[fc.card.rank];
+          // 敵に支配されている自分のカード（J counter target）
+          const isStolenByEnemy = !isEnemy && fc.controller === 'player2';
           
           return (
             <div
@@ -829,7 +861,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
             >
               {/* カード本体 */}
               <div
-                className={`cuttle-field-card-full ${getSuitClass(fc.card)} ${fc.controller !== fc.owner ? 'stolen' : ''} ${isDropTarget ? 'drop-target' : ''}`}
+                className={`cuttle-field-card-full ${getSuitClass(fc.card)} ${fc.controller !== fc.owner ? 'stolen' : ''} ${isStolenByEnemy ? 'stolen-by-enemy' : ''} ${isDropTarget ? 'drop-target' : ''}`}
               onClick={() => {
                 if (gameState.phase === 'selectTarget' && isEnemy) {
                   onFieldCardSelect(fc);
@@ -868,9 +900,15 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
                   </div>
                 )}
                 
-                {/* J略奪オーバーレイ */}
-                {fc.controller !== fc.owner && (
-                  <div className="stolen-overlay">
+                {/* J略奪オーバーレイ - 敵がプレイヤーのカードを支配中 */}
+                {fc.controller !== fc.owner && fc.controller === 'player2' && (
+                  <div className="stolen-overlay enemy-control">
+                    <span className="stolen-j">J</span>
+                  </div>
+                )}
+                {/* J略奪オーバーレイ - プレイヤーが敵のカードを支配中 */}
+                {fc.controller !== fc.owner && fc.controller === 'player1' && (
+                  <div className="stolen-overlay player-control">
                     <span className="stolen-j">J</span>
                   </div>
                 )}
@@ -955,7 +993,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
       
       {/* 敵手札（扇状 - 逆向き：敵なので上に開く） */}
       <div className="cuttle-enemy-hand">
-        {enemy.hand.map((_, i) => {
+        {enemy.hand.map((card, i) => {
           const count = enemy.hand.length;
           const maxAngle = 12;
           const maxSpacing = 40;
@@ -978,6 +1016,50 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
           const xOffset = offset * spacing;
           // 端が上に上がるようにマイナス
           const yOffset = -Math.abs(offset) * 3;
+          
+          // 8永続効果で手札公開中かチェック
+          const isRevealed = gameState.opponentHandRevealed.player2;
+          const pipLayout = PIP_LAYOUTS[card.rank];
+          
+          // 公開中なら表面を表示
+          if (isRevealed) {
+            return (
+              <div
+                key={`enemy-hand-${card.id}`}
+                className="cuttle-enemy-card-revealed"
+                style={{
+                  transform: `translateX(calc(-50% + ${xOffset}px)) translateY(${yOffset}px) rotate(${angle}deg)`,
+                  zIndex: i + 1,
+                }}
+              >
+                <div className="card-parchment" />
+                {isFaceCard(card.rank) ? (
+                  <div
+                    className="card-face-art"
+                    style={getFaceMaskStyle(card.race, card.rank)}
+                  />
+                ) : (
+                  <div className="card-pips">
+                    {pipLayout?.map((pip, j) => (
+                      <div
+                        key={j}
+                        className={`card-pip ${pip.inverted ? 'inverted' : ''}`}
+                        style={{
+                          left: `${pip.x}%`,
+                          top: `${pip.y}%`,
+                          ...getSuitMaskStyle(card.race),
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+                <div className="card-rank top-left">{card.rank}</div>
+                <div className="card-rank bottom-right">{card.rank}</div>
+                {/* 公開中マーク */}
+                <div className="revealed-mark">👁</div>
+              </div>
+            );
+          }
           
           return (
             <div
@@ -1366,6 +1448,78 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* 4の効果: プレイヤーが手札を捨てる */}
+      {gameState.phase === 'opponentDiscard' && gameState.currentPlayer === 'player2' && (
+        <div className="cuttle-action-modal discard-modal">
+          <div className="action-modal-content">
+            <div className="action-modal-title">
+              相手の4の効果
+            </div>
+            <div className="action-modal-desc">
+              手札から{Math.min(2, player.hand.length)}枚選んで捨ててください
+              <br />
+              <span className="discard-count">選択中: {discardSelection.length}/{Math.min(2, player.hand.length)}枚</span>
+            </div>
+            <div className="discard-choice-cards">
+              {player.hand.map((card) => {
+                const isSelected = discardSelection.some(c => c.id === card.id);
+                const pipLayout = PIP_LAYOUTS[card.rank];
+                return (
+                  <div
+                    key={`discard-${card.id}`}
+                    className={`discard-choice-card ${isSelected ? 'selected' : ''}`}
+                    onClick={() => {
+                      if (isSelected) {
+                        setDiscardSelection(prev => prev.filter(c => c.id !== card.id));
+                      } else if (discardSelection.length < Math.min(2, player.hand.length)) {
+                        setDiscardSelection(prev => [...prev, card]);
+                      }
+                    }}
+                  >
+                    <div className="card-parchment" />
+                    {isFaceCard(card.rank) ? (
+                      <div
+                        className="card-face-art"
+                        style={getFaceMaskStyle(card.race, card.rank)}
+                      />
+                    ) : (
+                      <div className="card-pips">
+                        {pipLayout?.map((pip, j) => (
+                          <div
+                            key={j}
+                            className={`card-pip ${pip.inverted ? 'inverted' : ''}`}
+                            style={{
+                              left: `${pip.x}%`,
+                              top: `${pip.y}%`,
+                              ...getSuitMaskStyle(card.race),
+                            }}
+                          />
+                        ))}
+                      </div>
+                    )}
+                    <div className="card-rank top-left">{card.rank}</div>
+                    <div className="card-rank bottom-right">{card.rank}</div>
+                    {isSelected && <div className="selected-mark">✓</div>}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="action-modal-buttons">
+              <button 
+                className="action-btn effect"
+                disabled={discardSelection.length !== Math.min(2, player.hand.length)}
+                onClick={() => {
+                  onDiscard(discardSelection);
+                  setDiscardSelection([]);
+                }}
+              >
+                捨てる
+              </button>
             </div>
           </div>
         </div>
