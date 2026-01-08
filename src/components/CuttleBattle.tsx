@@ -938,11 +938,24 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
     );
   };
   
+  // カード数に応じたマージン計算（カツカツになるまで広げる）
+  const getCardMargin = (cardCount: number, maxCards: number = 6) => {
+    if (cardCount <= 1) return 0;
+    if (cardCount <= 3) return 6;  // 広めのギャップ
+    if (cardCount <= 4) return 2;  // 少しギャップ
+    if (cardCount <= maxCards) return 0;  // ぴったり
+    // それ以上は重ねる（負のマージン）
+    const overlap = Math.min((cardCount - maxCards) * 8, 30);
+    return -overlap;
+  };
+
   // フィールドカードをレンダリング（フルデザイン、エリア縦幅いっぱい）
   const renderFieldCards = (cards: FieldCard[], isEnemy: boolean) => {
     if (cards.length === 0) {
       return <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem' }}>空</span>;
     }
+    
+    const margin = getCardMargin(cards.length, 6);
     
     return (
       <div className="cuttle-field-cards-full">
@@ -958,7 +971,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
             <div
               key={`field-${fc.card.rank}-${fc.card.race}-${i}`}
               className={`cuttle-field-card-wrapper ${getSuitClass(fc.card)}`}
-              style={{ zIndex: i + 1 }}
+              style={{ zIndex: i + 1, marginLeft: i === 0 ? 0 : margin }}
             >
               {/* カード本体 */}
               <div
@@ -1038,13 +1051,15 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
       return <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem' }}>効果なし</span>;
     }
     
+    const margin = getCardMargin(permanents.length, 4); // 効果エリアは狭いので4枚まで
+    
     return (
       <div className="cuttle-effect-cards-full">
         {permanents.map((fc, i) => (
           <div
             key={`effect-${fc.card.rank}-${fc.card.race}-${i}`}
             className={`cuttle-field-card-wrapper ${getSuitClass(fc.card)}`}
-            style={{ zIndex: i + 1 }}
+            style={{ zIndex: i + 1, marginLeft: i === 0 ? 0 : margin }}
           >
             {/* カード本体 */}
             <div className={`cuttle-field-card-full effect ${getSuitClass(fc.card)}`}>
