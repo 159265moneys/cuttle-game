@@ -7,6 +7,12 @@ import './CuttleBattle.css';
 // カトル バトル画面 - 化学式TCG風レイアウト
 // ========================================
 
+interface MatchInfo {
+  currentMatch: number;
+  player1Wins: number;
+  player2Wins: number;
+}
+
 interface CuttleBattleProps {
   isOpen: boolean;
   onClose: () => void;
@@ -21,6 +27,7 @@ interface CuttleBattleProps {
   onCancel: () => void;
   onRestart: () => void;
   isCPUTurn: boolean;
+  matchInfo?: MatchInfo;
 }
 
 type Mode = 'default' | 'browsing' | 'dragging';
@@ -196,6 +203,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   onSevenOptionB,
   onRestart,
   isCPUTurn,
+  matchInfo,
 }) => {
   // UIモード
   const [mode, setMode] = useState<Mode>('default');
@@ -1116,6 +1124,18 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   
   return (
     <div ref={screenRef} className={`cuttle-battle ${isOpen ? 'active' : ''}`}>
+      {/* マッチ情報 */}
+      {matchInfo && (
+        <div className="cuttle-match-info">
+          <span className="match-number">第{matchInfo.currentMatch}戦</span>
+          <span className="match-score">
+            <span className="player-wins">{matchInfo.player1Wins}</span>
+            <span className="score-divider">-</span>
+            <span className="enemy-wins">{matchInfo.player2Wins}</span>
+          </span>
+        </div>
+      )}
+      
       {/* 敵情報バー - 右寄せ: アイコン | 名前 | 点数 */}
       <div className="cuttle-enemy-info">
         <div className="cuttle-player-info-row right-aligned">
@@ -1514,8 +1534,15 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
           <div className={`result-text ${isWin ? 'win' : 'lose'}`}>
             {isWin ? '勝利！' : '敗北...'}
           </div>
+          {matchInfo && (
+            <div className="match-result-score">
+              {matchInfo.player1Wins + (isWin ? 1 : 0)} - {matchInfo.player2Wins + (isWin ? 0 : 1)}
+            </div>
+          )}
           <button className="btn-restart" onClick={onRestart}>
-            もう一度
+            {matchInfo && (matchInfo.player1Wins + (isWin ? 1 : 0) < 2 && matchInfo.player2Wins + (isWin ? 0 : 1) < 2)
+              ? '次の試合へ'
+              : 'もう一度'}
           </button>
         </div>
       )}

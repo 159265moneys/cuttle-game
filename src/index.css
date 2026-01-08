@@ -114,3 +114,75 @@ button:active {
   animation: target-pulse 0.8s ease-in-out infinite;
 }
 
+/* ========================================
+   最終結果画面
+   ======================================== */
+.final-result-screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.final-result-bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, 
+    #0a0608 0%, 
+    #1a1015 30%, 
+    #150a10 70%, 
+    #0a0608 100%
+  );
+}
+
+.final-result-content {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+}
+
+.final-result-title {
+  font-family: 'Cinzel', serif;
+  font-size: 3rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.final-result-title.win {
+  color: #c9a227;
+  text-shadow: 0 0 30px rgba(201, 162, 39, 0.7);
+}
+
+.final-result-title.lose {
+  color: #8b2942;
+  text-shadow: 0 0 30px rgba(139, 41, 66, 0.7);
+}
+
+.final-result-score {
+  font-family: 'Cinzel', serif;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #e8e0d4;
+  margin-bottom: 40px;
+}
+
+.final-result-button {
+  padding: 18px 50px;
+  background: linear-gradient(135deg, #3a2a20, #2a1a15);
+  border: 2px solid #c9a227;
+  border-radius: 30px;
+  color: #c9a227;
+  font-size: 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'MedievalSharp', serif;
+  transition: all 0.2s ease;
+}
+
+.final-result-button:active {
+  transform: scale(0.95);
+  background: linear-gradient(135deg, #4a3a30, #3a2a25);
+}
+

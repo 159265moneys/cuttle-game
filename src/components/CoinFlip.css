@@ -1,0 +1,255 @@
+/* ========================================
+   コイントス画面
+   ======================================== */
+
+.coin-flip-screen {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    overflow: hidden;
+}
+
+.coin-flip-bg {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, 
+        #0a0608 0%, 
+        #1a1015 30%, 
+        #150a10 70%, 
+        #0a0608 100%
+    );
+}
+
+/* 指示テキスト */
+.coin-instruction {
+    position: absolute;
+    top: 15%;
+    z-index: 10;
+    text-align: center;
+}
+
+.coin-instruction p {
+    font-family: 'Cinzel', serif;
+    font-size: 1.2rem;
+    color: #c9a227;
+    text-shadow: 0 0 10px rgba(201, 162, 39, 0.5);
+    animation: pulse-text 2s ease-in-out infinite;
+}
+
+@keyframes pulse-text {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+}
+
+/* コインコンテナ */
+.coin-container {
+    position: relative;
+    z-index: 5;
+    perspective: 1000px;
+    cursor: grab;
+}
+
+.coin-container:active {
+    cursor: grabbing;
+}
+
+.coin-container.ready {
+    animation: coin-idle 3s ease-in-out infinite;
+}
+
+@keyframes coin-idle {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+/* コイン本体 */
+.coin {
+    width: 150px;
+    height: 150px;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.1s ease-out;
+}
+
+/* フリップアニメーション */
+.coin.flipping {
+    animation: coin-flip 2s ease-out forwards;
+}
+
+@keyframes coin-flip {
+    0% {
+        transform: translateY(0) rotateX(0deg);
+    }
+    20% {
+        transform: translateY(-300px) rotateX(720deg);
+    }
+    40% {
+        transform: translateY(-350px) rotateX(1440deg);
+    }
+    60% {
+        transform: translateY(-250px) rotateX(2160deg);
+    }
+    80% {
+        transform: translateY(0) rotateX(2880deg);
+    }
+    90% {
+        transform: translateY(30px) rotateX(3240deg);
+    }
+    100% {
+        transform: translateY(0) rotateX(3600deg);
+    }
+}
+
+/* 結果に応じた最終状態 */
+.coin.result.heads {
+    transform: rotateX(0deg);
+}
+
+.coin.result.tails {
+    transform: rotateX(180deg);
+}
+
+/* コインの面 */
+.coin-face {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    backface-visibility: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 
+        inset 0 0 30px rgba(201, 162, 39, 0.3),
+        0 5px 20px rgba(0, 0, 0, 0.5);
+}
+
+.coin-heads {
+    background: linear-gradient(145deg, #c9a227 0%, #a88520 50%, #866a18 100%);
+    border: 4px solid #d4b440;
+}
+
+.coin-tails {
+    background: linear-gradient(145deg, #3a2a25 0%, #281a15 50%, #201510 100%);
+    border: 4px solid #5a4a3a;
+    transform: rotateX(180deg);
+}
+
+.coin-inner {
+    width: 80%;
+    height: 80%;
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 表面: 4つのスートアイコン */
+.coin-suit-icon {
+    width: 40%;
+    height: 40%;
+    margin: 3%;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+}
+
+.coin-suit-icon.human {
+    background-color: #8b2020;
+}
+
+.coin-suit-icon.elf {
+    background-color: #9a8520;
+}
+
+.coin-suit-icon.goblin {
+    background-color: #2a6a2a;
+}
+
+.coin-suit-icon.demon {
+    background-color: #203a6a;
+}
+
+/* 裏面: backmain */
+.coin-back-main {
+    width: 70%;
+    height: 70%;
+    background-color: #c9a227;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    filter: drop-shadow(0 0 5px rgba(201, 162, 39, 0.5));
+}
+
+/* 結果表示 */
+.coin-result {
+    position: absolute;
+    bottom: 20%;
+    z-index: 10;
+    text-align: center;
+    cursor: pointer;
+    animation: result-appear 0.5s ease-out;
+}
+
+@keyframes result-appear {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.result-text {
+    font-family: 'Cinzel', serif;
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+}
+
+.result-text.heads {
+    color: #c9a227;
+    text-shadow: 0 0 20px rgba(201, 162, 39, 0.7);
+}
+
+.result-text.tails {
+    color: #6a8ac9;
+    text-shadow: 0 0 20px rgba(106, 138, 201, 0.7);
+}
+
+.result-side {
+    display: block;
+    font-size: 2.5rem;
+    margin-bottom: 5px;
+}
+
+.result-meaning {
+    font-size: 1.5rem;
+    opacity: 0.9;
+}
+
+.tap-to-start {
+    font-size: 0.9rem;
+    color: rgba(200, 180, 140, 0.7);
+    animation: pulse-text 2s ease-in-out infinite;
+}
+
+/* フリップ中は指示を非表示 */
+.coin-container.flipping + .coin-instruction,
+.coin-container.result + .coin-instruction {
+    display: none;
+}
+
