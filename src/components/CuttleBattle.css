@@ -351,7 +351,7 @@
     aspect-ratio: 5 / 7;
     height: 100%;
     background: linear-gradient(135deg, #3a2a25 0%, #201510 100%);
-    border: 2px solid #c9a227;
+    border: 1px solid rgba(60, 45, 35, 0.8);
     border-radius: 6px;
     display: flex;
     flex-direction: column;
@@ -432,7 +432,7 @@
 .cuttle-deck-card-back .card-back-frame {
     position: absolute;
     inset: 3%;
-    border: 1px solid rgba(201, 162, 39, 0.3);
+    border: 1px solid rgba(80, 60, 50, 0.4);
     border-radius: 3px;
     pointer-events: none;
 }
