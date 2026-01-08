@@ -225,6 +225,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   const playerEffectsRef = useRef<HTMLDivElement>(null);
   const enemyPointsRef = useRef<HTMLDivElement>(null);
   const enemyEffectsRef = useRef<HTMLDivElement>(null);
+  const lastCardSwitchRef = useRef<number>(0); // カード切り替えのデバウンス用
   
   const player = gameState.player1;
   const enemy = gameState.player2;
@@ -506,17 +507,42 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
         return;
       }
       
-      // 横移動 → カード選択切り替え
+      // 横移動 → カード選択切り替え（デバウンス付き）
+      const now = Date.now();
+      const DEBOUNCE_MS = 80; // 80ms以内の連続切り替えを防止
+      
+      if (now - lastCardSwitchRef.current < DEBOUNCE_MS) {
+        return; // デバウンス中
+      }
+      
       const browseCards = document.querySelectorAll('.cuttle-browse-card');
+      let closestIndex = -1;
+      let closestDistance = Infinity;
+      
+      // 最も近いカードの中心を探す
       browseCards.forEach((card) => {
         const rect = card.getBoundingClientRect();
-        if (current.x >= rect.left && current.x <= rect.right) {
-          const newIndex = parseInt(card.getAttribute('data-index') || '-1');
-          if (newIndex !== selectedIndex && newIndex >= 0) {
-            setSelectedIndex(newIndex);
-          }
+        const centerX = rect.left + rect.width / 2;
+        const distance = Math.abs(current.x - centerX);
+        
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          closestIndex = parseInt(card.getAttribute('data-index') || '-1');
         }
       });
+      
+      // カードの幅の30%以内に入ったら切り替え（境界でのブレを防止）
+      if (closestIndex >= 0 && closestIndex !== selectedIndex) {
+        const closestCard = document.querySelector(`.cuttle-browse-card[data-index="${closestIndex}"]`);
+        if (closestCard) {
+          const rect = closestCard.getBoundingClientRect();
+          const threshold = rect.width * 0.3;
+          if (closestDistance < threshold) {
+            lastCardSwitchRef.current = now;
+            setSelectedIndex(closestIndex);
+          }
+        }
+      }
     } else if (mode === 'dragging') {
       // ドロップターゲット判定
       let newTarget: string | null = null;
