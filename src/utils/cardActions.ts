@@ -430,28 +430,40 @@ export function executeScuttle(
 
   const scuttleResult = canScuttle(attackerCard, defenderField, hasQueen(opponent));
 
-  // スカトル不可の場合
-  if (!scuttleResult.canScuttle) {
+  // 完全にブロック（魔術師保護、数字が小さい等）
+  if (scuttleResult.result === 'blocked') {
     return { ...state, message: 'アタックできません' };
   }
 
   // 手札から削除
   player.hand = player.hand.filter(c => c.id !== attackerCard.id);
 
-  // 相手のカードを破壊（付属Jも捨て札へ）
+  // 種族不利で失敗: 自分のカードのみ捨て札
+  if (scuttleResult.result === 'lose') {
+    newState.scrapPile.push({ ...attackerCard });
+    newState.message = 'アタック失敗！（種族不利）';
+    newState.consecutivePasses = 0;
+    return endTurn(newState);
+  }
+
+  // 成功ケース: 相手のカードを破壊（付属Jも捨て札へ）
   const actualDefender = opponent.field.find(fc => fc.card.id === defenderField.card.id);
   if (actualDefender) {
     sendAttachedKnightsToScrap(newState, actualDefender);
   }
-  
   opponent.field = opponent.field.filter(fc => fc.card.id !== defenderField.card.id);
-  
-  // 両方捨て札（常に相打ち）
   newState.scrapPile.push({ ...defenderField.card });
-  newState.scrapPile.push({ ...attackerCard });
-  newState.message = 'アタック成功！';
-  newState.consecutivePasses = 0;
 
+  // 種族有利: 相手のみ捨て札
+  if (scuttleResult.result === 'win') {
+    newState.message = 'アタック成功！（種族有利）';
+  } else {
+    // 相打ち: 両方捨て札
+    newState.scrapPile.push({ ...attackerCard });
+    newState.message = 'アタック成功！';
+  }
+
+  newState.consecutivePasses = 0;
   return endTurn(newState);
 }
 
