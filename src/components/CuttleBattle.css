@@ -278,7 +278,7 @@
     background: radial-gradient(ellipse at center, rgba(201, 160, 48, 0.08) 0%, transparent 70%);
 }
 
-/* ========== 敵 効果エリア (10%) ========== */
+/* ========== 敵 効果エリア (10%) - 赤ベース ========== */
 .cuttle-enemy-effects {
     height: 10%;
     min-height: 60px;
@@ -287,8 +287,8 @@
     align-items: center;
     gap: 6px;
     padding: 4px 10px;
-    background: rgba(106, 44, 145, 0.15);
-    border-bottom: 1px solid rgba(106, 44, 145, 0.4);
+    background: rgba(139, 41, 66, 0.2);
+    border-bottom: 1px solid rgba(180, 60, 90, 0.4);
     position: relative;
     z-index: 3;
 }
@@ -300,7 +300,7 @@
     color: rgba(232, 224, 212, 0.4);
 }
 
-/* ========== 敵 点数エリア (13%) ========== */
+/* ========== 敵 点数エリア (13%) - 赤ベース ========== */
 .cuttle-enemy-points-area {
     height: 13%;
     min-height: 80px;
@@ -309,8 +309,8 @@
     justify-content: center;
     align-items: center;
     padding: 4px 10px;
-    background: rgba(139, 41, 66, 0.08);
-    border-bottom: 1px solid rgba(201, 162, 39, 0.2);
+    background: rgba(139, 41, 66, 0.12);
+    border-bottom: 1px solid rgba(180, 60, 90, 0.3);
     z-index: 4;
 }
 
@@ -453,7 +453,7 @@
     line-height: 1.3;
 }
 
-/* ========== 自分 点数エリア (20%) ========== */
+/* ========== 自分 点数エリア (20%) - 青ベース ========== */
 .cuttle-player-points-area {
     height: 20%;
     min-height: 115px;
@@ -462,12 +462,12 @@
     justify-content: center;
     align-items: center;
     padding: 4px 10px;
-    background: rgba(201, 162, 39, 0.08);
-    border-bottom: 1px solid rgba(201, 162, 39, 0.2);
+    background: rgba(41, 82, 139, 0.12);
+    border-bottom: 1px solid rgba(60, 120, 180, 0.3);
     z-index: 11;
 }
 
-/* ========== 自分 効果エリア (15%) ========== */
+/* ========== 自分 効果エリア (15%) - 青ベース ========== */
 .cuttle-player-effects {
     height: 15%;
     min-height: 90px;
@@ -476,8 +476,8 @@
     align-items: center;
     gap: 6px;
     padding: 4px 10px;
-    background: rgba(106, 44, 145, 0.1);
-    border-bottom: 1px solid rgba(106, 44, 145, 0.3);
+    background: rgba(41, 82, 139, 0.2);
+    border-bottom: 1px solid rgba(60, 120, 180, 0.4);
     position: relative;
     z-index: 12;
 }
@@ -1529,13 +1529,13 @@
 /* ========== ドロップエリアハイライト ========== */
 .cuttle-player-points-area.drop-highlight,
 .cuttle-player-effects.drop-highlight {
-    background: rgba(201, 162, 39, 0.2);
-    box-shadow: inset 0 0 20px rgba(201, 162, 39, 0.3);
+    background: rgba(60, 140, 200, 0.25);
+    box-shadow: inset 0 0 20px rgba(60, 140, 200, 0.4);
 }
 
 .cuttle-enemy-points-area.drop-highlight {
-    background: rgba(139, 41, 66, 0.2);
-    box-shadow: inset 0 0 20px rgba(139, 41, 66, 0.3);
+    background: rgba(200, 60, 90, 0.25);
+    box-shadow: inset 0 0 20px rgba(200, 60, 90, 0.4);
 }
 
 /* メッセージは山札・墓地エリア内に移動 */
@@ -1748,27 +1748,19 @@
 
 .log-entry {
     display: flex;
-    gap: 6px;
     font-size: 0.65rem;
     line-height: 1.3;
-    padding: 1px 0;
+    padding: 2px 0;
 }
 
-.log-entry.player1 .log-name {
-    color: #c9a227;
+/* プレイヤー = 水色 */
+.log-entry.player1 .log-msg {
+    color: #5ed3f3;
 }
 
-.log-entry.player2 .log-name {
-    color: #e6a3b3;
-}
-
-.log-entry .log-name {
-    font-weight: 600;
-    flex-shrink: 0;
-}
-
-.log-entry .log-msg {
-    color: #e8e0d4;
+/* 敵 = 赤 */
+.log-entry.player2 .log-msg {
+    color: #f35e5e;
 }
 
 /* ========== 8永続効果で公開された敵の手札 ========== */

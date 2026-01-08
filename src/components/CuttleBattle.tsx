@@ -260,49 +260,55 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   const prevPhaseRef = useRef(gameState.phase);
   const prevPlayer1FieldRef = useRef(player.field.length);
   const prevPlayer2FieldRef = useRef(enemy.field.length);
+  const prevPlayer1HandRef = useRef(player.hand.length);
+  const prevPlayer2HandRef = useRef(enemy.hand.length);
+  const prevDeckRef = useRef(gameState.deck.length);
   const prevScrapRef = useRef(gameState.scrapPile.length);
+  const prevCurrentPlayerRef = useRef(gameState.currentPlayer);
   
   useEffect(() => {
-    // フィールドカード数の変化を検出
-    const p1FieldDiff = player.field.length - prevPlayer1FieldRef.current;
+    // 変化量を検出
     const p2FieldDiff = enemy.field.length - prevPlayer2FieldRef.current;
-    const scrapDiff = gameState.scrapPile.length - prevScrapRef.current;
+    const p2HandDiff = enemy.hand.length - prevPlayer2HandRef.current;
+    const deckDiff = gameState.deck.length - prevDeckRef.current;
+    const turnChanged = prevCurrentPlayerRef.current !== gameState.currentPlayer;
     
-    // プレイヤーがカードをプレイ
-    if (p1FieldDiff > 0 && gameState.currentPlayer === 'player2') {
-      const newCard = player.field[player.field.length - 1];
-      if (newCard) {
-        addLog('player1', `${newCard.card.rank}をプレイ`);
-      }
+    // CPUがドロー（ターンが変わり、手札が増え、デッキが減った）
+    if (turnChanged && prevCurrentPlayerRef.current === 'player2' && p2HandDiff > 0 && deckDiff < 0 && p2FieldDiff === 0) {
+      addLog('player2', 'ドローした');
     }
     
-    // CPUがカードをプレイ
-    if (p2FieldDiff > 0 && gameState.currentPlayer === 'player1') {
+    // CPUがカードをプレイ（フィールドが増えた）
+    if (p2FieldDiff > 0 && turnChanged && prevCurrentPlayerRef.current === 'player2') {
       const newCard = enemy.field[enemy.field.length - 1];
       if (newCard) {
-        addLog('player2', `${newCard.card.rank}をプレイ`);
-      }
-    }
-    
-    // カードが墓地に送られた
-    if (scrapDiff > 0) {
-      const lastScrap = gameState.scrapPile[gameState.scrapPile.length - 1];
-      if (lastScrap && prevPhaseRef.current !== 'gameOver') {
-        // 詳細なログは難しいのでシンプルに
+        const raceName = RACE_NAMES[newCard.card.race] || newCard.card.race;
+        const isPerm = ['J', 'Q', 'K', '8'].includes(newCard.card.rank) && newCard.card.value === 0;
+        if (isPerm) {
+          addLog('player2', `${raceName}${newCard.card.rank}の永続効果を発動`);
+        } else {
+          addLog('player2', `${raceName}${newCard.card.rank}を場にセット`);
+        }
       }
     }
     
     // ゲームオーバー
     if (gameState.phase === 'gameOver' && prevPhaseRef.current !== 'gameOver') {
-      const winner = player.field.reduce((sum, fc) => sum + fc.card.value, 0) >= 21 ? 'player1' : 'player2';
-      addLog(winner, '勝利！');
+      if (gameState.winner) {
+        addLog(gameState.winner, '勝利！');
+      }
     }
     
+    // 状態を更新
     prevPhaseRef.current = gameState.phase;
     prevPlayer1FieldRef.current = player.field.length;
     prevPlayer2FieldRef.current = enemy.field.length;
+    prevPlayer1HandRef.current = player.hand.length;
+    prevPlayer2HandRef.current = enemy.hand.length;
+    prevDeckRef.current = gameState.deck.length;
     prevScrapRef.current = gameState.scrapPile.length;
-  }, [gameState, player.field, enemy.field, addLog]);
+    prevCurrentPlayerRef.current = gameState.currentPlayer;
+  }, [gameState, player.field, enemy.field, player.hand, enemy.hand, addLog]);
   
   // 3の効果: 捨て札選択フェーズで自動的にモーダルを開く
   useEffect(() => {
@@ -371,8 +377,10 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
     if (!pendingCard || !pendingTarget) return;
     
     // 直接アクション実行（状態のクロージャ問題を回避）
+    const attackerRace = RACE_NAMES[pendingCard.race] || pendingCard.race;
+    const targetRace = RACE_NAMES[pendingTarget.card.race] || pendingTarget.card.race;
     onDirectAction('scuttle', pendingCard, pendingTarget);
-    addLog('player1', `${pendingCard.rank}で${pendingTarget.card.rank}を破壊`);
+    addLog('player1', `${attackerRace}${pendingCard.rank}で${targetRace}${pendingTarget.card.rank}をスカトル`);
     
     closeActionModal();
   }, [pendingCard, pendingTarget, onDirectAction, addLog, closeActionModal]);
@@ -384,17 +392,21 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
     // 直接アクション実行（状態のクロージャ問題を回避）
     if (pendingCard.rank === 'J') {
       // J: 略奪（相手の点数カードを自分のものに）
+      const jRace = RACE_NAMES[pendingCard.race] || pendingCard.race;
+      const jTargetRace = RACE_NAMES[pendingTarget.card.race] || pendingTarget.card.race;
       onDirectAction('playKnight', pendingCard, pendingTarget);
-      addLog('player1', `Jで${pendingTarget.card.rank}を略奪`);
+      addLog('player1', `${jRace}Jで${jTargetRace}${pendingTarget.card.rank}を略奪`);
     } else if (['A', '2', '9', '10'].includes(pendingCard.rank)) {
       // ワンオフ効果
+      const effRace = RACE_NAMES[pendingCard.race] || pendingCard.race;
+      const effTargetRace = RACE_NAMES[pendingTarget.card.race] || pendingTarget.card.race;
       onDirectAction('playOneOff', pendingCard, pendingTarget);
       if (pendingCard.rank === '9' || pendingCard.rank === '10') {
-        addLog('player1', `${pendingCard.rank}で${pendingTarget.card.rank}を手札に戻した`);
+        addLog('player1', `${effRace}${pendingCard.rank}で${effTargetRace}${pendingTarget.card.rank}を手札に戻す`);
       } else if (pendingCard.rank === 'A') {
-        addLog('player1', `Aで${pendingTarget.card.rank}の点数カードを破壊`);
+        addLog('player1', `${effRace}Aで${effTargetRace}${pendingTarget.card.rank}を破壊`);
       } else if (pendingCard.rank === '2') {
-        addLog('player1', `2で${pendingTarget.card.rank}の永続効果を破壊`);
+        addLog('player1', `${effRace}2で${effTargetRace}${pendingTarget.card.rank}を破壊`);
       }
     }
     
@@ -536,29 +548,39 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
         if (dropTarget === 'playerPoints') {
           // 点数として出す
           if (card.value > 0) {
+            const raceName = RACE_NAMES[card.race] || card.race;
             onAction('playPoint');
-            addLog('player1', `${card.rank}を点数としてプレイ`);
+            addLog('player1', `${raceName}${card.rank}を場にセット`);
           }
         } else if (dropTarget === 'playerEffects') {
           // 効果として出す
+          const raceName = RACE_NAMES[card.race] || card.race;
           if (isPermanentEffect(card)) {
-            // J以外の永続効果（Q, K）
+            // J以外の永続効果（Q, K, 8）
             if (card.rank !== 'J') {
             onAction('playPermanent');
-              addLog('player1', `${card.rank}の効果を発動`);
+              addLog('player1', `${raceName}${card.rank}の永続効果を発動`);
             }
           } else if (card.rank === '3') {
             // 3は捨て札選択が必要
             if (gameState.scrapPile.length > 0) {
               onCardSelect(card);
               onAction('playOneOff');
-              // モーダルはuseEffectで自動的に開く
+              addLog('player1', `${raceName}3で墓地から回収`);
             }
           } else {
             // ワンオフ効果（ターゲット不要のもの: 4, 5, 6, 7）
             if (!['A', '2', '9', '10'].includes(card.rank)) {
             onAction('playOneOff');
-              addLog('player1', `${card.rank}の効果を発動`);
+              if (card.rank === '4') {
+                addLog('player1', `${raceName}4で相手の手札を2枚捨てさせる`);
+              } else if (card.rank === '5') {
+                addLog('player1', `${raceName}5で2枚ドロー`);
+              } else if (card.rank === '6') {
+                addLog('player1', `${raceName}6で全永続効果を破壊`);
+              } else if (card.rank === '7') {
+                addLog('player1', `${raceName}7で山札トップを確認`);
+              }
             }
           }
         } else if (dropTarget.startsWith('enemyCard:')) {
@@ -1172,7 +1194,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
           )}
         </div>
         
-        {/* アクションログ - スクロール可能、最新が下 */}
+        {/* アクションログ - スクロール可能、最新が下、色で判別 */}
         <div className="cuttle-action-log" ref={logContainerRef}>
           {actionLogs.length === 0 ? (
             <span className="log-action">ゲーム開始</span>
@@ -1180,7 +1202,6 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
             <div className="log-entries">
               {actionLogs.map(log => (
                 <div key={log.id} className={`log-entry ${log.player}`}>
-                  <span className="log-name">{log.player === 'player1' ? player.name : enemy.name}</span>
                   <span className="log-msg">{log.message}</span>
                 </div>
               ))}
