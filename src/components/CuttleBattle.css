@@ -1771,3 +1771,117 @@
     color: #e8e0d4;
 }
 
+/* ========== 略奪オーバーレイ（Jで奪ったカード） ========== */
+.stolen-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(80, 30, 100, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 4px;
+    pointer-events: none;
+}
+
+.stolen-j {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #d4a8ff;
+    text-shadow: 0 0 10px #8844cc, 0 0 20px #662299;
+    font-family: 'Cinzel Decorative', serif;
+}
+
+/* ========== 7の効果モーダル ========== */
+.seven-choice-modal .action-modal-content {
+    max-width: 360px;
+}
+
+.seven-choice-cards {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.seven-choice-card {
+    position: relative;
+    width: 90px;
+    aspect-ratio: 5 / 7;
+    border-radius: 6px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: 2px solid #6a5a4a;
+}
+
+.seven-choice-card:hover {
+    transform: scale(1.08);
+    box-shadow: 0 0 15px rgba(200, 160, 80, 0.5);
+    border-color: #c9a227;
+}
+
+.seven-choice-card .card-parchment {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+
+.seven-choice-card .card-rank {
+    font-size: 0.7rem;
+}
+
+.seven-choice-card .card-face-art {
+    width: 65%;
+    height: auto;
+    aspect-ratio: 1;
+    top: 20%;
+    left: 17.5%;
+}
+
+.seven-choice-card .card-pips {
+    position: absolute;
+    top: 15%;
+    left: 15%;
+    width: 70%;
+    height: 70%;
+}
+
+.seven-choice-card .card-pip {
+    width: 16px;
+    height: 16px;
+}
+
+.seven-card-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(30, 25, 20, 0.9);
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    font-size: 0.55rem;
+    color: #e8e0d4;
+}
+
+.seven-card-info span:first-child {
+    font-size: 0.7rem;
+    font-weight: bold;
+    color: #c9a227;
+}
+
+.seven-card-race {
+    color: #a89888;
+}
+
+.seven-card-effect {
+    color: #7aa088;
+}
+

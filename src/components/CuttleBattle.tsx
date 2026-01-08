@@ -206,6 +206,10 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   const [pendingTarget, setPendingTarget] = useState<FieldCard | null>(null);
   const [showActionModal, setShowActionModal] = useState(false);
   
+  // 8の選択モーダル用
+  const [show8ChoiceModal, setShow8ChoiceModal] = useState(false);
+  const [pending8Card, setPending8Card] = useState<Card | null>(null);
+  
   // ログシステム
   const [actionLogs, setActionLogs] = useState<LogEntry[]>([]);
   const logIdRef = useRef(0);
@@ -276,6 +280,15 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
     prevPlayer2FieldRef.current = enemy.field.length;
     prevScrapRef.current = gameState.scrapPile.length;
   }, [gameState, player.field, enemy.field, addLog]);
+  
+  // 3の効果: 捨て札選択フェーズで自動的にモーダルを開く
+  useEffect(() => {
+    if (gameState.phase === 'selectTarget' && 
+        gameState.selectedCard?.rank === '3' &&
+        gameState.scrapPile.length > 0) {
+      setShowScrapModal(true);
+    }
+  }, [gameState.phase, gameState.selectedCard, gameState.scrapPile.length]);
   
   // 点数計算（controller を考慮 - Jで略奪したカードの点数も正しく計算）
   const calculatePoints = (playerId: 'player1' | 'player2') => {
@@ -495,15 +508,26 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
           }
         } else if (dropTarget === 'playerEffects') {
           // 効果として出す
-          if (isPermanentEffect(card)) {
-            // J以外の永続効果（8, Q, K）
+          if (card.rank === '8') {
+            // 8は点数か永続か選択させる
+            setPending8Card(card);
+            setShow8ChoiceModal(true);
+          } else if (isPermanentEffect(card)) {
+            // J以外の永続効果（Q, K）
             if (card.rank !== 'J') {
             onAction('playPermanent');
               addLog('player1', `${card.rank}の効果を発動`);
             }
+          } else if (card.rank === '3') {
+            // 3は捨て札選択が必要
+            if (gameState.scrapPile.length > 0) {
+              onCardSelect(card);
+              onAction('playOneOff');
+              // モーダルはuseEffectで自動的に開く
+            }
           } else {
-            // ワンオフ効果（ターゲット不要のもの）
-            if (!['A', '2', '9'].includes(card.rank)) {
+            // ワンオフ効果（ターゲット不要のもの: 4, 5, 6, 7）
+            if (!['A', '2', '9', '10'].includes(card.rank)) {
             onAction('playOneOff');
               addLog('player1', `${card.rank}の効果を発動`);
             }
@@ -812,7 +836,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
             >
               {/* カード本体 */}
               <div
-                className={`cuttle-field-card-full ${getSuitClass(fc.card)} ${fc.owner !== (isEnemy ? 'player2' : 'player1') ? 'stolen' : ''} ${isDropTarget ? 'drop-target' : ''}`}
+                className={`cuttle-field-card-full ${getSuitClass(fc.card)} ${fc.controller !== fc.owner ? 'stolen' : ''} ${isDropTarget ? 'drop-target' : ''}`}
               onClick={() => {
                 if (gameState.phase === 'selectTarget' && isEnemy) {
                   onFieldCardSelect(fc);
@@ -848,6 +872,13 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
                         }}
                       />
                     ))}
+                  </div>
+                )}
+                
+                {/* J略奪オーバーレイ */}
+                {fc.controller !== fc.owner && (
+                  <div className="stolen-overlay">
+                    <span className="stolen-j">J</span>
                   </div>
                 )}
               </div>
@@ -1286,6 +1317,114 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
               <button className="action-btn cancel" onClick={closeActionModal}>
                 戻る
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* 8の選択モーダル */}
+      {show8ChoiceModal && pending8Card && (
+        <div className="cuttle-action-modal">
+          <div className="action-modal-content">
+            <div className="action-modal-title">
+              8の使い方を選択
+            </div>
+            <div className="action-modal-desc">
+              点数として出すか、永続効果として出すか選んでください
+            </div>
+            <div className="action-modal-buttons">
+              <button 
+                className="action-btn effect"
+                onClick={() => {
+                  onCardSelect(pending8Card);
+                  setTimeout(() => {
+                    onAction('playPoint');
+                    addLog('player1', '8を点数（8pt）としてプレイ');
+                  }, 50);
+                  setShow8ChoiceModal(false);
+                  setPending8Card(null);
+                }}
+              >
+                点数（8pt）として出す
+              </button>
+              <button 
+                className="action-btn effect"
+                onClick={() => {
+                  onCardSelect(pending8Card);
+                  setTimeout(() => {
+                    onAction('playPermanent');
+                    addLog('player1', '8を永続効果としてプレイ');
+                  }, 50);
+                  setShow8ChoiceModal(false);
+                  setPending8Card(null);
+                }}
+              >
+                永続効果として出す
+              </button>
+              <button 
+                className="action-btn cancel"
+                onClick={() => {
+                  setShow8ChoiceModal(false);
+                  setPending8Card(null);
+                }}
+              >
+                戻る
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* 7の効果: 山札トップ2枚から選択 */}
+      {gameState.phase === 'sevenChoice' && gameState.sevenChoices && (
+        <div className="cuttle-action-modal seven-choice-modal">
+          <div className="action-modal-content">
+            <div className="action-modal-title">
+              7の効果
+            </div>
+            <div className="action-modal-desc">
+              山札の上から2枚のうち1枚を選んでプレイ
+            </div>
+            <div className="seven-choice-cards">
+              {gameState.sevenChoices.map((card) => (
+                <div
+                  key={`seven-${card.id}`}
+                  className="seven-choice-card"
+                  onClick={() => {
+                    onCardSelect(card);
+                    // 選択後の処理はApp.tsx側で
+                  }}
+                >
+                  <div className="card-parchment" />
+                  {isFaceCard(card.rank) ? (
+                    <div
+                      className="card-face-art"
+                      style={getFaceMaskStyle(card.race, card.rank)}
+                    />
+                  ) : (
+                    <div className="card-pips">
+                      {PIP_LAYOUTS[card.rank]?.map((pip, j) => (
+                        <div
+                          key={j}
+                          className={`card-pip ${pip.inverted ? 'inverted' : ''}`}
+                          style={{
+                            left: `${pip.x}%`,
+                            top: `${pip.y}%`,
+                            ...getSuitMaskStyle(card.race),
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                  <div className="card-rank top-left">{card.rank}</div>
+                  <div className="card-rank bottom-right">{card.rank}</div>
+                  <div className="seven-card-info">
+                    <span>{card.rank}</span>
+                    <span className="seven-card-race">{RACE_NAMES[card.race]}</span>
+                    <span className="seven-card-effect">{getCardEffect(card)}</span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>

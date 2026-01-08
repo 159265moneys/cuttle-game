@@ -110,12 +110,38 @@ function App() {
   const handleCardSelect = useCallback((card: CardType) => {
     if (gameState.currentPlayer === 'player2' || isProcessing) return;
 
+    // 7の効果: 山札トップから選択した場合
+    if (gameState.phase === 'sevenChoice' && gameState.sevenChoices) {
+      // 選択したカードが sevenChoices にあるか確認
+      const isSevenChoice = gameState.sevenChoices.some(c => c.id === card.id);
+      if (isSevenChoice) {
+        // 選択したカードをデッキから除去してプレイヤーの手札に加える
+        const newDeck = gameState.deck.filter(c => c.id !== card.id);
+        const player = gameState[gameState.currentPlayer];
+        
+        setGameState(prev => ({
+          ...prev,
+          deck: newDeck,
+          [prev.currentPlayer]: {
+            ...player,
+            hand: [...player.hand, card],
+          },
+          selectedCard: card,
+          selectedAction: null,
+          phase: 'selectAction',
+          sevenChoices: undefined,
+          message: `${card.rank}をどう使う？`,
+        }));
+        return;
+      }
+    }
+
     setGameState(prev => ({
       ...prev,
       selectedCard: card,
       selectedAction: null,
     }));
-  }, [gameState.currentPlayer, isProcessing]);
+  }, [gameState, isProcessing]);
 
   // フィールドカード選択（ターゲット選択）
   const handleFieldCardSelect = useCallback((fieldCard: FieldCard) => {

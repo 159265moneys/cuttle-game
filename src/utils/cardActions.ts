@@ -166,11 +166,14 @@ export function executeOneOff(
     }
 
     case '7': {
-      // 山札トップを見てプレイ（別フェーズで処理）
+      // 山札トップ2枚を見てどちらかをプレイ
       if (newState.deck.length > 0) {
+        // 山札トップ2枚を取得（デッキから除去せずに見せる）
+        const topCards = newState.deck.slice(0, Math.min(2, newState.deck.length));
         newState.phase = 'sevenChoice';
-        newState.message = '山札トップをプレイするか、手札からプレイしてください';
-        newState.scrapPile.push({ ...card });
+        newState.sevenChoices = topCards;
+        newState.message = '山札トップから1枚選んでプレイ';
+        newState.scrapPile.push({ ...card }); // 7自体は捨て札へ
         return newState;
       }
       break;
@@ -308,28 +311,12 @@ export function executeScuttle(
   // 手札から削除
   player.hand = player.hand.filter(c => c.id !== attackerCard.id);
 
-  switch (scuttleResult.result) {
-    case 'success':
-      // 相手のカードを破壊、自分のも捨て札へ
-      opponent.field = opponent.field.filter(fc => fc.card.id !== defenderField.card.id);
-      newState.scrapPile.push({ ...defenderField.card });
-      newState.scrapPile.push({ ...attackerCard });
-      newState.message = 'スカトル成功！';
-      break;
-    
-    case 'fail':
-      // 自分のカードのみ捨て札
-      newState.scrapPile.push({ ...attackerCard });
-      newState.message = 'スカトル失敗...（種族相性で敗北）';
-      break;
-    
-    case 'mutual':
-      // 両方捨て札
-      opponent.field = opponent.field.filter(fc => fc.card.id !== defenderField.card.id);
-      newState.scrapPile.push({ ...defenderField.card });
-      newState.scrapPile.push({ ...attackerCard });
-      newState.message = '相打ち！';
-      break;
+  // スカトル成功時は常に相打ち（両方捨て札）
+  if (scuttleResult.result === 'mutual') {
+    opponent.field = opponent.field.filter(fc => fc.card.id !== defenderField.card.id);
+    newState.scrapPile.push({ ...defenderField.card });
+    newState.scrapPile.push({ ...attackerCard });
+    newState.message = 'スカトル成功！';
   }
 
   newState.consecutivePasses = 0;

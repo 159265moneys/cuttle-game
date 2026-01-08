@@ -45,6 +45,7 @@ export interface GameState {
   targetCard: FieldCard | null;
   message: string;
   opponentHandRevealed: { player1: boolean; player2: boolean };
+  sevenChoices?: Card[]; // 7の効果で選択する山札トップ2枚
 }
 
 // ゲームフェーズ

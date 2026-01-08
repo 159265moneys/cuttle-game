@@ -176,7 +176,7 @@ export function getRaceMatchup(attacker: Race, defender: Race): RaceMatchup {
   return 'draw';
 }
 
-// スカトル可否判定
+// スカトル可否判定（原典準拠：成功時は常に相打ち、同数字は属性で可否判定）
 export function canScuttle(
   attackerCard: Card, 
   defenderCard: FieldCard,
@@ -195,9 +195,9 @@ export function canScuttle(
     return { canScuttle: false, result: 'blocked' };
   }
   
-  // 攻撃側の数字が大きい場合は成功
+  // 攻撃側の数字が大きい場合は成功（常に相打ち）
   if (attackerValue > defenderValue) {
-    return { canScuttle: true, result: 'success' };
+    return { canScuttle: true, result: 'mutual' };
   }
   
   // 攻撃側の数字が小さい場合は不可
@@ -205,15 +205,19 @@ export function canScuttle(
     return { canScuttle: false, result: 'blocked' };
   }
   
-  // 同じ数字の場合は種族相性で判定
+  // 同じ数字の場合は種族相性で「スカトル可否」を判定
+  // 可能な場合は常に相打ち、不可な場合はスカトルできない
   const matchup = getRaceMatchup(attackerCard.race, defenderCard.card.race);
   
   switch (matchup) {
     case 'win':
-      return { canScuttle: true, result: 'success' };
+      // 有利な種族 → スカトル可能（相打ち）
+      return { canScuttle: true, result: 'mutual' };
     case 'lose':
-      return { canScuttle: true, result: 'fail' };
+      // 不利な種族 → スカトル不可
+      return { canScuttle: false, result: 'blocked' };
     case 'draw':
+      // 同じ種族 → スカトル可能（相打ち）
       return { canScuttle: true, result: 'mutual' };
   }
 }
