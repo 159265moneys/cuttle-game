@@ -15,7 +15,6 @@ interface MatchInfo {
 
 interface CuttleBattleProps {
   isOpen: boolean;
-  onClose: () => void;
   gameState: GameState;
   onCardSelect: (card: Card) => void;
   onFieldCardSelect: (fieldCard: FieldCard) => void;
@@ -25,7 +24,6 @@ interface CuttleBattleProps {
   onDiscard: (cards: Card[]) => void; // 4の効果で手札を捨てる
   onSevenOptionB: () => void; // 7のオプションB: 山札に戻して手札からプレイ
   onCancel: () => void;
-  onRestart: () => void;
   isCPUTurn: boolean;
   matchInfo?: MatchInfo;
 }
@@ -192,7 +190,6 @@ interface LogEntry {
 
 const CuttleBattle: React.FC<CuttleBattleProps> = ({
   isOpen,
-  onClose,
   gameState,
   onCardSelect,
   onFieldCardSelect,
@@ -201,7 +198,6 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   onDirectAction,
   onDiscard,
   onSevenOptionB,
-  onRestart,
   isCPUTurn,
   matchInfo,
 }) => {
@@ -264,49 +260,65 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
     }, 1000);
   }, []);
   
-  // HPリングのSVGパスを生成
+  // HPリングのSVGパスを生成（連続した円弧、上から時計回り）
   const renderHPRing = (filled: number, goldFill: number, isEnemy: boolean, size: number) => {
-    const segments = [];
     const totalSegments = 21;
-    const radius = size / 2 - 4;
+    const strokeWidth = isEnemy ? 5 : 3; // プレイヤーは細く
+    const radius = size / 2 - strokeWidth - 2;
     const cx = size / 2;
     const cy = size / 2;
-    const gapAngle = 2; // セグメント間のギャップ（度）
-    const segmentAngle = (360 - totalSegments * gapAngle) / totalSegments;
+    const circumference = 2 * Math.PI * radius;
     
-    for (let i = 0; i < totalSegments; i++) {
-      const startAngle = i * (segmentAngle + gapAngle) - 90;
-      const endAngle = startAngle + segmentAngle;
-      
-      const startRad = (startAngle * Math.PI) / 180;
-      const endRad = (endAngle * Math.PI) / 180;
-      
-      const x1 = cx + radius * Math.cos(startRad);
-      const y1 = cy + radius * Math.sin(startRad);
-      const x2 = cx + radius * Math.cos(endRad);
-      const y2 = cy + radius * Math.sin(endRad);
-      
-      let color = 'rgba(60, 50, 40, 0.5)'; // 空のセグメント
-      
-      if (i < goldFill) {
-        color = '#c9a227'; // 金色（Kによる）
-      } else if (i < filled) {
-        color = isEnemy ? '#f35e5e' : '#5ed3f3'; // 赤 or 青
-      }
-      
-      segments.push(
-        <path
-          key={i}
-          d={`M ${cx} ${cy} L ${x1} ${y1} A ${radius} ${radius} 0 0 1 ${x2} ${y2} Z`}
-          fill={color}
-          className={i < filled ? 'hp-segment-filled' : ''}
-        />
-      );
-    }
+    // 塗りつぶし割合を計算
+    const filledRatio = filled / totalSegments;
+    const goldRatio = goldFill / totalSegments;
+    const normalRatio = Math.max(0, filledRatio - goldRatio);
+    
+    // ダッシュ配列で円弧を描画
+    const goldLength = goldRatio * circumference;
+    const normalLength = normalRatio * circumference;
     
     return (
-      <svg width={size} height={size} className="hp-ring-svg">
-        {segments}
+      <svg width={size} height={size} className="hp-ring-svg" style={{ transform: 'rotate(-90deg)' }}>
+        {/* 背景リング */}
+        <circle
+          cx={cx}
+          cy={cy}
+          r={radius}
+          fill="none"
+          stroke="rgba(60, 50, 40, 0.4)"
+          strokeWidth={strokeWidth}
+        />
+        {/* 金色部分（Kによる） */}
+        {goldLength > 0 && (
+          <circle
+            cx={cx}
+            cy={cy}
+            r={radius}
+            fill="none"
+            stroke="#c9a227"
+            strokeWidth={strokeWidth}
+            strokeDasharray={`${goldLength} ${circumference - goldLength}`}
+            strokeDashoffset={0}
+            strokeLinecap="round"
+            className="hp-ring-gold"
+          />
+        )}
+        {/* 点数部分 */}
+        {normalLength > 0 && (
+          <circle
+            cx={cx}
+            cy={cy}
+            r={radius}
+            fill="none"
+            stroke={isEnemy ? '#f35e5e' : '#5ed3f3'}
+            strokeWidth={strokeWidth}
+            strokeDasharray={`${normalLength} ${circumference - normalLength}`}
+            strokeDashoffset={-goldLength}
+            strokeLinecap="round"
+            className="hp-ring-filled"
+          />
+        )}
       </svg>
     );
   };
@@ -1563,19 +1575,6 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
           >
             ドロー
           </button>
-          <button
-            className="cuttle-btn cuttle-btn-pass"
-            onClick={() => onAction('pass')}
-            disabled={isCPUTurn}
-          >
-            パス
-          </button>
-          <button
-            className="cuttle-btn cuttle-btn-pass"
-            onClick={onClose}
-          >
-            ✕
-          </button>
         </div>
       </div>
       
@@ -1670,11 +1669,6 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
               {matchInfo.player1Wins + (isWin ? 1 : 0)} - {matchInfo.player2Wins + (isWin ? 0 : 1)}
             </div>
           )}
-          <button className="btn-restart" onClick={onRestart}>
-            {matchInfo && (matchInfo.player1Wins + (isWin ? 1 : 0) < 2 && matchInfo.player2Wins + (isWin ? 0 : 1) < 2)
-              ? '次の試合へ'
-              : 'もう一度'}
-          </button>
         </div>
       )}
       

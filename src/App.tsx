@@ -67,42 +67,40 @@ function App() {
     startNewGame(matchState.playerStartsFirst);
   }, [startNewGame, matchState.playerStartsFirst]);
 
-  // ゲーム終了時の処理
+  // ゲーム終了時の処理 → 2秒後に自動で次へ
   useEffect(() => {
     if (gameState?.phase === 'gameOver' && gameState.winner) {
-      // 少し遅延してから結果処理
+      const isPlayerWin = gameState.winner === 'player1';
+      
+      // 2秒後に結果処理と自動遷移
       const timer = setTimeout(() => {
-        const isPlayerWin = gameState.winner === 'player1';
+        const newPlayer1Wins = matchState.player1Wins + (isPlayerWin ? 1 : 0);
+        const newPlayer2Wins = matchState.player2Wins + (isPlayerWin ? 0 : 1);
         
-        setMatchState(prev => {
-          const newState = {
+        // 2勝したら最終結果
+        if (newPlayer1Wins >= 2 || newPlayer2Wins >= 2) {
+          setMatchState(prev => ({
             ...prev,
-            player1Wins: prev.player1Wins + (isPlayerWin ? 1 : 0),
-            player2Wins: prev.player2Wins + (isPlayerWin ? 0 : 1),
-          };
-          
-          // 2勝したら最終結果
-          if (newState.player1Wins >= 2 || newState.player2Wins >= 2) {
-            setScreen('finalResult');
-          }
-          
-          return newState;
-        });
+            player1Wins: newPlayer1Wins,
+            player2Wins: newPlayer2Wins,
+          }));
+          setScreen('finalResult');
+        } else {
+          // 次のラウンドへ自動遷移
+          setMatchState(prev => ({
+            ...prev,
+            player1Wins: newPlayer1Wins,
+            player2Wins: newPlayer2Wins,
+            currentMatch: prev.currentMatch + 1,
+            playerStartsFirst: !prev.playerStartsFirst, // 先攻後攻を交代
+          }));
+          setScreen('roundStart');
+        }
       }, 2000);
       
       return () => clearTimeout(timer);
     }
-  }, [gameState?.phase, gameState?.winner]);
-
-  // 次のマッチを開始 → ROUND START演出へ
-  const startNextMatch = useCallback(() => {
-    setMatchState(prev => ({
-      ...prev,
-      currentMatch: prev.currentMatch + 1,
-      playerStartsFirst: !prev.playerStartsFirst, // 先攻後攻を交代
-    }));
-    setScreen('roundStart');
-  }, []);
+  }, [gameState?.phase, gameState?.winner, matchState.player1Wins, matchState.player2Wins]);
 
   // 全体リスタート（最初から）
   const handleFullRestart = useCallback(() => {
@@ -462,7 +460,6 @@ function App() {
   return (
     <CuttleBattle
       isOpen={true}
-      onClose={() => {}}
       gameState={gameState}
       onCardSelect={handleCardSelect}
       onFieldCardSelect={handleFieldCardSelect}
@@ -472,9 +469,6 @@ function App() {
       onDiscard={handleDiscard}
       onSevenOptionB={handleSevenOptionB}
       onCancel={handleCancel}
-      onRestart={gameState.phase === 'gameOver' && (matchState.player1Wins < 2 && matchState.player2Wins < 2) 
-        ? startNextMatch 
-        : handleFullRestart}
       isCPUTurn={gameState.currentPlayer === 'player2'}
       matchInfo={{
         currentMatch: matchState.currentMatch,

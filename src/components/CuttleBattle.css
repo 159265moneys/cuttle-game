@@ -103,8 +103,12 @@
     left: 0;
 }
 
-.hp-segment-filled {
-    filter: drop-shadow(0 0 3px currentColor);
+.hp-ring-filled {
+    filter: drop-shadow(0 0 4px currentColor);
+}
+
+.hp-ring-gold {
+    filter: drop-shadow(0 0 4px #c9a227);
 }
 
 .cuttle-icon-inner {
