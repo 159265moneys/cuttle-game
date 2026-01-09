@@ -237,6 +237,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
     startY: number;
     endX: number;
     endY: number;
+    delay: number; // アニメーション遅延（秒）
   }
   const [pointParticles, setPointParticles] = useState<PointParticle[]>([]);
   const particleIdRef = useRef(0);
@@ -284,7 +285,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   const player = gameState.player1;
   const enemy = gameState.player2;
   
-  // ポイント獲得パーティクル生成（修正版：正確な座標でアイコンへ飛ばす、カード値と同じ数）
+  // ポイント獲得パーティクル生成（修正版：正確な座標でアイコンへ飛ばす、カード値と同じ数、バラけて到着）
   const spawnPointParticles = useCallback((target: 'player' | 'enemy', startX: number, startY: number, cardValue: number = 5) => {
     const iconRef = target === 'player' ? playerIconRef : enemyIconRef;
     if (!iconRef.current) return;
@@ -302,18 +303,22 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
       newParticles.push({
         id: particleIdRef.current,
         target,
-        startX: startX + (Math.random() - 0.5) * 40,
-        startY: startY + (Math.random() - 0.5) * 30,
-        endX: endX - startX + (Math.random() - 0.5) * 20,
-        endY: endY - startY + (Math.random() - 0.5) * 20,
+        // 開始位置をもう少し広げる
+        startX: startX + (Math.random() - 0.5) * 60,
+        startY: startY + (Math.random() - 0.5) * 50,
+        // 到着位置もバラけさせる
+        endX: endX - startX + (Math.random() - 0.5) * 40,
+        endY: endY - startY + (Math.random() - 0.5) * 40,
+        // 各パーティクルにランダムな遅延を追加（0〜0.3秒）
+        delay: Math.random() * 0.3,
       });
     }
     setPointParticles(prev => [...prev, ...newParticles]);
     
-    // 1秒後にパーティクルを削除
+    // 1.5秒後にパーティクルを削除（遅延分を考慮）
     setTimeout(() => {
       setPointParticles(prev => prev.filter(p => !newParticles.find(np => np.id === p.id)));
-    }, 1000);
+    }, 1500);
   }, []);
   
   // ガラス破砕エフェクト
@@ -1695,7 +1700,6 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
         <div className="cuttle-pile-stack scrap-pile" onClick={() => setShowScrapModal(true)}>
           {gameState.scrapPile.length === 0 ? (
             <div className="cuttle-scrap-card empty">
-              <span className="pile-title">墓地</span>
               <span className="pile-count">0</span>
             </div>
           ) : (
@@ -1847,6 +1851,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
             top: p.startY,
             '--end-x': `${p.endX}px`,
             '--end-y': `${p.endY}px`,
+            animationDelay: `${p.delay}s`,
           } as React.CSSProperties}
         />
       ))}
