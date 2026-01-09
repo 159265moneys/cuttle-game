@@ -284,7 +284,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   const player = gameState.player1;
   const enemy = gameState.player2;
   
-  // ポイント獲得パーティクル生成（修正版：正確な座標でアイコンへ飛ばす、カード値に応じた数）
+  // ポイント獲得パーティクル生成（修正版：正確な座標でアイコンへ飛ばす、カード値と同じ数）
   const spawnPointParticles = useCallback((target: 'player' | 'enemy', startX: number, startY: number, cardValue: number = 5) => {
     const iconRef = target === 'player' ? playerIconRef : enemyIconRef;
     if (!iconRef.current) return;
@@ -293,8 +293,8 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
     const endX = iconRect.left + iconRect.width / 2;
     const endY = iconRect.top + iconRect.height / 2;
     
-    // パーティクル数 = カードの数字（最小3、最大12）
-    const particleCount = Math.max(3, Math.min(12, cardValue + 2));
+    // パーティクル数 = カードの数字そのまま（1=1個、10=10個）
+    const particleCount = cardValue;
     
     const newParticles: PointParticle[] = [];
     for (let i = 0; i < particleCount; i++) {
