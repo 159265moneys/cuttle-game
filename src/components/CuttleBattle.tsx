@@ -1280,47 +1280,31 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
           
           // 8永続効果で手札公開中かチェック
           const isRevealed = gameState.opponentHandRevealed.player2;
-          const pipLayout = PIP_LAYOUTS[card.rank];
           
-          // 公開中なら表面を表示
-          if (isRevealed) {
-            return (
-              <div
-                key={`enemy-hand-${card.id}`}
-                className="cuttle-enemy-card-revealed"
-                style={{
-                  transform: `translateX(calc(-50% + ${xOffset}px)) translateY(${yOffset}px) rotate(${angle}deg)`,
-                  zIndex: i + 1,
-                }}
-              >
-                <div className="card-parchment" />
-                {isFaceCard(card.rank) ? (
-                  <div
-                    className="card-face-art"
-                    style={getFaceMaskStyle(card.race, card.rank)}
-                  />
-                ) : (
-                  <div className="card-pips">
-                    {pipLayout?.map((pip, j) => (
-                      <div
-                        key={j}
-                        className={`card-pip ${pip.inverted ? 'inverted' : ''}`}
-                        style={{
-                          left: `${pip.x}%`,
-                          top: `${pip.y}%`,
-                          ...getSuitMaskStyle(card.race),
-                        }}
-                      />
-                    ))}
-                  </div>
-                )}
-                <div className="card-rank top-left">{card.rank}</div>
-                <div className="card-rank bottom-right">{card.rank}</div>
-                {/* 公開中マーク */}
-                <div className="revealed-mark">👁</div>
-              </div>
-            );
-          }
+          // 公開中なら簡易版で表面を表示（アイコン+数字）
+                          if (isRevealed) {
+                            return (
+                              <div
+                                key={`enemy-hand-${card.id}`}
+                                className={`cuttle-enemy-card-revealed ${getSuitClass(card)}`}
+                                style={{
+                                  transform: `translateX(calc(-50% + ${xOffset}px)) translateY(${yOffset}px) rotate(${angle}deg)`,
+                                  zIndex: i + 1,
+                                }}
+                              >
+                                <div className="card-parchment" />
+                                {/* 簡易版: 中央にアイコン */}
+                                <div 
+                                  className="revealed-suit-icon"
+                                  style={getSuitMaskStyle(card.race)}
+                                />
+                                {/* ランク表示 */}
+                                <div className="revealed-rank">{card.rank}</div>
+                                {/* 公開中マーク */}
+                                <div className="revealed-mark">👁</div>
+                              </div>
+                            );
+                          }
           
           return (
             <div

@@ -63,15 +63,28 @@
     transition: all 0.3s ease;
 }
 
-.match-indicator.win {
+/* プレイヤー側: 勝ち=水色、負け=暗い赤 */
+.cuttle-status-bar .match-indicator.win {
     background: #5ed3f3;
     border-color: #5ed3f3;
     box-shadow: 0 0 8px rgba(94, 211, 243, 0.6);
 }
 
-.match-indicator.lose {
+.cuttle-status-bar .match-indicator.lose {
     background: #4a1a1a;
     border-color: #6a2a2a;
+}
+
+/* 敵側: 勝ち=明るい赤、負け=暗い青 */
+.cuttle-enemy-info .match-indicator.win {
+    background: #f35e5e;
+    border-color: #f35e5e;
+    box-shadow: 0 0 8px rgba(243, 94, 94, 0.6);
+}
+
+.cuttle-enemy-info .match-indicator.lose {
+    background: #1a2a4a;
+    border-color: #2a3a5a;
 }
 
 /* ========== プレイヤー/敵 アイコンコンテナ（高レイヤー） ========== */
@@ -86,15 +99,15 @@
 .cuttle-icon-container.player {
     width: 80px;
     height: 80px;
-    left: 8px;
-    bottom: 56px; /* ステータスバーの上に配置 */
+    left: 5px;      /* 左に3px移動 (8→5) */
+    bottom: 71px;   /* 上に15px移動 (56→71) */
 }
 
 .cuttle-icon-container.enemy {
     width: 64px;
     height: 64px;
-    right: 8px;
-    top: 28px; /* 敵情報バーの下に配置 */
+    right: 3px;     /* 右に5px移動 (8→3) */
+    top: 8px;       /* 上に20px移動 (28→8) */
 }
 
 .hp-ring-svg {
@@ -201,6 +214,7 @@
 .cuttle-player-info-row.right-aligned {
     justify-content: flex-end;
     margin-left: auto;
+    padding-right: 40px; /* 中身を左に40px移動 */
 }
 
 /* 旧円形アイコン（参照用に残す） */
@@ -2112,7 +2126,7 @@
     color: #f35e5e;
 }
 
-/* ========== 8永続効果で公開された敵の手札 ========== */
+/* ========== 8永続効果で公開された敵の手札（簡易版: アイコン+ランク） ========== */
 .cuttle-enemy-card-revealed {
     position: absolute;
     left: 50%;
@@ -2123,8 +2137,18 @@
     border-radius: 4px;
     overflow: hidden;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
-    border: 1px solid #8a7a6a;
+    border: 2px solid #8a7a6a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
+
+/* 種族別ボーダー */
+.cuttle-enemy-card-revealed.suit-elf { border-color: var(--race-elf); }
+.cuttle-enemy-card-revealed.suit-goblin { border-color: var(--race-goblin); }
+.cuttle-enemy-card-revealed.suit-human { border-color: var(--race-human); }
+.cuttle-enemy-card-revealed.suit-demon { border-color: var(--race-demon); }
 
 .cuttle-enemy-card-revealed .card-parchment {
     position: absolute;
@@ -2132,38 +2156,51 @@
     left: 0;
     right: 0;
     bottom: 0;
+    z-index: 0;
 }
 
-.cuttle-enemy-card-revealed .card-rank {
-    font-size: 0.55rem;
+/* 簡易版: 中央のスートアイコン */
+.revealed-suit-icon {
+    width: 20px;
+    height: 20px;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    z-index: 2;
+    margin-bottom: 2px;
 }
 
-.cuttle-enemy-card-revealed .card-face-art {
-    width: 60%;
-    aspect-ratio: 1;
-    top: 22%;
-    left: 20%;
+/* 種族別アイコン色 */
+.cuttle-enemy-card-revealed.suit-human .revealed-suit-icon { background-color: var(--race-human); }
+.cuttle-enemy-card-revealed.suit-demon .revealed-suit-icon { background-color: var(--race-demon); }
+.cuttle-enemy-card-revealed.suit-elf .revealed-suit-icon { background-color: var(--race-elf); }
+.cuttle-enemy-card-revealed.suit-goblin .revealed-suit-icon { background-color: var(--race-goblin); }
+
+/* 簡易版: ランク表示 */
+.revealed-rank {
+    font-size: 0.85rem;
+    font-weight: 700;
+    font-family: 'Cinzel', serif;
+    z-index: 2;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
 }
 
-.cuttle-enemy-card-revealed .card-pips {
-    position: absolute;
-    top: 15%;
-    left: 15%;
-    width: 70%;
-    height: 70%;
-}
-
-.cuttle-enemy-card-revealed .card-pip {
-    width: 10px;
-    height: 10px;
-}
+/* 種族別ランク色 */
+.cuttle-enemy-card-revealed.suit-human .revealed-rank { color: #c96060; }
+.cuttle-enemy-card-revealed.suit-demon .revealed-rank { color: #7090c0; }
+.cuttle-enemy-card-revealed.suit-elf .revealed-rank { color: #c9b860; }
+.cuttle-enemy-card-revealed.suit-goblin .revealed-rank { color: #6ab87a; }
 
 .revealed-mark {
     position: absolute;
-    bottom: 2px;
+    bottom: 1px;
     right: 2px;
-    font-size: 0.5rem;
-    opacity: 0.7;
+    font-size: 0.45rem;
+    opacity: 0.6;
+    z-index: 3;
 }
 
 /* ========== 4の効果で手札を捨てるモーダル ========== */

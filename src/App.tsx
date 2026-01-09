@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import type { GameState, Card as CardType, FieldCard, ActionType } from './types/game';
 import { createInitialGameState, drawCard, pass, hasQueen, getOpponent } from './utils/gameLogic';
 import { 
@@ -36,6 +36,9 @@ function App() {
 
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  
+  // ゲームオーバー処理済みフラグ（重複実行を防止）
+  const gameOverProcessedRef = useRef(false);
 
   // 新しいゲームを開始
   const startNewGame = useCallback((playerFirst: boolean) => {
@@ -48,6 +51,9 @@ function App() {
       state.currentPlayer = 'player2';
       state.message = 'CPUのターン';
     }
+    
+    // 新しいゲーム開始時にフラグをリセット
+    gameOverProcessedRef.current = false;
     
     setGameState(state);
     setScreen('battle');
@@ -69,41 +75,52 @@ function App() {
 
   // ゲーム終了時の処理 → 2秒後に自動で次へ
   useEffect(() => {
+    // 既に処理済みの場合は何もしない（重複実行防止）
+    if (gameOverProcessedRef.current) return;
+    
     if (gameState?.phase === 'gameOver' && gameState.winner) {
+      // 処理済みフラグを立てる
+      gameOverProcessedRef.current = true;
+      
       const isPlayerWin = gameState.winner === 'player1';
       
       // 2秒後に結果処理と自動遷移
       const timer = setTimeout(() => {
-        const newPlayer1Wins = matchState.player1Wins + (isPlayerWin ? 1 : 0);
-        const newPlayer2Wins = matchState.player2Wins + (isPlayerWin ? 0 : 1);
-        
-        // 2勝したら最終結果
-        if (newPlayer1Wins >= 2 || newPlayer2Wins >= 2) {
-          setMatchState(prev => ({
-            ...prev,
-            player1Wins: newPlayer1Wins,
-            player2Wins: newPlayer2Wins,
-          }));
-          setScreen('finalResult');
-        } else {
-          // 次のラウンドへ自動遷移
-          setMatchState(prev => ({
-            ...prev,
-            player1Wins: newPlayer1Wins,
-            player2Wins: newPlayer2Wins,
-            currentMatch: prev.currentMatch + 1,
-            playerStartsFirst: !prev.playerStartsFirst, // 先攻後攻を交代
-          }));
-          setScreen('roundStart');
-        }
+        setMatchState(prev => {
+          const newPlayer1Wins = prev.player1Wins + (isPlayerWin ? 1 : 0);
+          const newPlayer2Wins = prev.player2Wins + (isPlayerWin ? 0 : 1);
+          
+          // 2勝したら最終結果
+          if (newPlayer1Wins >= 2 || newPlayer2Wins >= 2) {
+            setScreen('finalResult');
+            return {
+              ...prev,
+              player1Wins: newPlayer1Wins,
+              player2Wins: newPlayer2Wins,
+            };
+          } else {
+            // 次のラウンドへ自動遷移
+            setScreen('roundStart');
+            return {
+              ...prev,
+              player1Wins: newPlayer1Wins,
+              player2Wins: newPlayer2Wins,
+              currentMatch: prev.currentMatch + 1,
+              playerStartsFirst: !prev.playerStartsFirst, // 先攻後攻を交代
+            };
+          }
+        });
       }, 2000);
       
       return () => clearTimeout(timer);
     }
-  }, [gameState?.phase, gameState?.winner, matchState.player1Wins, matchState.player2Wins]);
+  }, [gameState?.phase, gameState?.winner]);
 
   // 全体リスタート（最初から）
   const handleFullRestart = useCallback(() => {
+    // フラグをリセット
+    gameOverProcessedRef.current = false;
+    
     setMatchState({
       player1Wins: 0,
       player2Wins: 0,
