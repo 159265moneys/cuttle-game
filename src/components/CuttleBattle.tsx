@@ -2008,8 +2008,8 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
         <div
             className={`cuttle-drag ${getSuitClass(dragCard)}`}
           style={{
-              left: touchCurrent.x - 50,
-              top: touchCurrent.y - 70,
+              left: touchCurrent.x - 35, /* 70px / 2 */
+              top: touchCurrent.y - 49,  /* 70px * 7/5 / 2 */
             }}
           >
             <div className="card-parchment" />

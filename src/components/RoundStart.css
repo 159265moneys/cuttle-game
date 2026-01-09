@@ -156,10 +156,10 @@
     box-shadow: 0 0 10px rgba(94, 211, 243, 0.6);
 }
 
-/* 自分の負け = 暗い青 */
+/* 自分の負け = 暗い青（より暗く） */
 .round-indicator.player-lose {
-    background: #2a4a6a;
-    border-color: #2a4a6a;
+    background: #1a2a3a;
+    border-color: #1a2a3a;
     box-shadow: none;
 }
 
@@ -170,10 +170,10 @@
     box-shadow: 0 0 10px rgba(243, 94, 94, 0.6);
 }
 
-/* 敵の負け = 暗い赤（敵が負けたマッチ） */
+/* 敵の負け = 暗い赤（より暗く） */
 .round-indicator.enemy-lose-dark {
-    background: #6a2a2a;
-    border-color: #6a2a2a;
+    background: #3a1a1a;
+    border-color: #3a1a1a;
     box-shadow: none;
 }
 
