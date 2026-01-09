@@ -420,10 +420,10 @@
     background: radial-gradient(ellipse at center, rgba(201, 160, 48, 0.08) 0%, transparent 70%);
 }
 
-/* ========== 敵 効果エリア (14%) - 赤ベース ========== */
+/* ========== 敵 効果エリア (12.5%) - 赤ベース ========== */
 .cuttle-enemy-effects {
-    height: 14%;
-    min-height: 80px;
+    height: 12.5%;
+    min-height: 75px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -442,10 +442,10 @@
     color: rgba(232, 224, 212, 0.4);
 }
 
-/* ========== 敵 点数エリア (13%) - 赤ベース ========== */
+/* ========== 敵 点数エリア (14.5%) - 赤ベース ========== */
 .cuttle-enemy-points-area {
-    height: 13%;
-    min-height: 80px;
+    height: 14.5%;
+    min-height: 85px;
     position: relative;
     display: flex;
     justify-content: center;
