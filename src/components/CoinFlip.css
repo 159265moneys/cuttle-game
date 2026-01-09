@@ -86,16 +86,16 @@
     text-shadow: none;
 }
 
-/* 敵の勝ち（自分の負け）= 暗い赤 */
-.coin-flip-enemy-bar .match-indicator.win {
-    color: #6a2a2a;
-    text-shadow: none;
-}
-
-/* 敵の負け（自分の勝ち）= 明るい赤 */
-.coin-flip-enemy-bar .match-indicator.lose {
+/* 敵の勝ち = 明るい赤（敵が勝ったマッチ） */
+.coin-flip-enemy-bar .match-indicator.enemy-win-bright {
     color: #f35e5e;
     text-shadow: 0 0 8px rgba(243, 94, 94, 0.6);
+}
+
+/* 敵の負け = 暗い赤（敵が負けたマッチ） */
+.coin-flip-enemy-bar .match-indicator.enemy-lose-dark {
+    color: #6a2a2a;
+    text-shadow: none;
 }
 
 /* 指示テキスト */

@@ -163,17 +163,17 @@
     box-shadow: none;
 }
 
-/* 敵の勝ち（自分の負け）= 暗い赤 */
-.round-indicator.enemy-win {
-    background: #6a2a2a;
-    border-color: #6a2a2a;
-    box-shadow: none;
-}
-
-/* 敵の負け（自分の勝ち）= 明るい赤 */
-.round-indicator.enemy-lose {
+/* 敵の勝ち = 明るい赤（敵が勝ったマッチ） */
+.round-indicator.enemy-win-bright {
     background: #f35e5e;
     border-color: #f35e5e;
     box-shadow: 0 0 10px rgba(243, 94, 94, 0.6);
+}
+
+/* 敵の負け = 暗い赤（敵が負けたマッチ） */
+.round-indicator.enemy-lose-dark {
+    background: #6a2a2a;
+    border-color: #6a2a2a;
+    box-shadow: none;
 }
 

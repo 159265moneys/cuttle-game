@@ -77,14 +77,18 @@ const CoinFlip: React.FC<CoinFlipProps> = ({
   });
 
   // マッチインジケーターをレンダリング（3つ）
+  // 自分勝ち時: 自分=明るい青、敵=暗い赤
+  // 自分負け時: 自分=暗い青、敵=明るい赤
   const renderMatchIndicators = (wins: number, losses: number, isEnemy: boolean) => {
     const indicators = [];
     for (let i = 0; i < 3; i++) {
       let className = 'match-indicator';
       if (i < wins) {
-        className += isEnemy ? ' lose' : ' win'; // 敵の勝ち=自分の負け色、自分の勝ち=勝ち色
+        // このプレイヤーが勝ったマッチ
+        className += isEnemy ? ' enemy-win-bright' : ' win'; // 敵勝ち=明るい赤、自分勝ち=明るい青
       } else if (i < wins + losses) {
-        className += isEnemy ? ' win' : ' lose'; // 敵の負け=自分の勝ち色、自分の負け=負け色
+        // このプレイヤーが負けたマッチ
+        className += isEnemy ? ' enemy-lose-dark' : ' lose'; // 敵負け=暗い赤、自分負け=暗い青
       }
       indicators.push(<span key={i} className={className}>●</span>);
     }

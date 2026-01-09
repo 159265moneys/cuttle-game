@@ -80,18 +80,18 @@
     box-shadow: none;
 }
 
-/* 敵側: 勝ち（自分の負け）=暗い赤 */
-.cuttle-enemy-info .match-indicator.win {
-    background: #6a2a2a;
-    border-color: #6a2a2a;
-    box-shadow: none;
-}
-
-/* 敵側: 負け（自分の勝ち）=明るい赤 */
-.cuttle-enemy-info .match-indicator.lose {
+/* 敵側: 敵が勝ったマッチ=明るい赤 */
+.cuttle-enemy-info .match-indicator.enemy-win-bright {
     background: #f35e5e;
     border-color: #f35e5e;
     box-shadow: 0 0 8px rgba(243, 94, 94, 0.6);
+}
+
+/* 敵側: 敵が負けたマッチ=暗い赤 */
+.cuttle-enemy-info .match-indicator.enemy-lose-dark {
+    background: #6a2a2a;
+    border-color: #6a2a2a;
+    box-shadow: none;
 }
 
 /* ========== プレイヤー/敵 アイコンコンテナ（高レイヤー） ========== */

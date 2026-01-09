@@ -1579,6 +1579,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   return (
     <div ref={screenRef} className={`cuttle-battle ${isOpen ? 'active' : ''} ${screenShake ? 'screen-shake' : ''}`}>
       {/* 敵情報バー - 右寄せ: 名前 | 点数 | マッチインジケーター */}
+      {/* 敵の勝ち=明るい赤、敵の負け=暗い赤 */}
       <div className="cuttle-enemy-info">
         <div className="cuttle-player-info-row right-aligned">
           <span className="cuttle-player-name">{enemy.name}</span>
@@ -1589,8 +1590,8 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
                 <div
                   key={i}
                   className={`match-indicator ${
-                    i < matchInfo.player2Wins ? 'win' : 
-                    i < (matchInfo.player1Wins + matchInfo.player2Wins) && i >= matchInfo.player2Wins ? 'lose' : ''
+                    i < matchInfo.player2Wins ? 'enemy-win-bright' : 
+                    i < (matchInfo.player1Wins + matchInfo.player2Wins) && i >= matchInfo.player2Wins ? 'enemy-lose-dark' : ''
                   }`}
                 />
               ))}

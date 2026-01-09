@@ -43,24 +43,30 @@ const RoundStart: React.FC<RoundStartProps> = ({
     };
   }, [onComplete]);
 
-  // マッチインジケーター（勝敗の色分け）
+  // マッチインジケーター（勝敗の色分け）- 3つ
+  // 自分勝ち時: 自分=明るい青、敵=暗い赤
+  // 自分負け時: 自分=暗い青、敵=明るい赤
   const renderIndicators = (isEnemy: boolean) => {
     const indicators = [];
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < 3; i++) {
       let className = 'round-indicator';
       if (isEnemy) {
-        // 敵のバー: 敵の勝ち（自分の負け）= 暗い青、敵の負け（自分の勝ち）= 明るい赤
+        // 敵のバー
         if (i < player2Wins) {
-          className += ' enemy-win'; // 暗い青
+          // 敵が勝ったマッチ = 敵は明るい赤
+          className += ' enemy-win-bright';
         } else if (i < player2Wins + player1Wins) {
-          className += ' enemy-lose'; // 明るい赤
+          // 敵が負けたマッチ = 敵は暗い赤
+          className += ' enemy-lose-dark';
         }
       } else {
-        // 自分のバー: 自分の勝ち = 明るい青、自分の負け = 暗い赤
+        // 自分のバー
         if (i < player1Wins) {
-          className += ' player-win'; // 明るい青
+          // 自分が勝ったマッチ = 自分は明るい青
+          className += ' player-win';
         } else if (i < player1Wins + player2Wins) {
-          className += ' player-lose'; // 暗い赤
+          // 自分が負けたマッチ = 自分は暗い青
+          className += ' player-lose';
         }
       }
       indicators.push(<div key={i} className={className} />);
