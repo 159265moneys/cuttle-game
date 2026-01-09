@@ -15,12 +15,7 @@
 .round-start-bg {
     position: absolute;
     inset: 0;
-    background: linear-gradient(180deg, 
-        #0a0608 0%, 
-        #1a1015 30%, 
-        #150a10 70%, 
-        #0a0608 100%
-    );
+    background: rgba(0, 0, 0, 0.85);
 }
 
 /* 中央テキスト */
@@ -151,13 +146,29 @@
     transition: all 0.3s ease;
 }
 
+/* 自分の勝ち = 明るい青 */
 .round-indicator.player-win {
     background: #5ed3f3;
     border-color: #5ed3f3;
     box-shadow: 0 0 10px rgba(94, 211, 243, 0.6);
 }
 
+/* 自分の負け = 暗い赤 */
+.round-indicator.player-lose {
+    background: #6a2a2a;
+    border-color: #6a2a2a;
+    box-shadow: none;
+}
+
+/* 敵の勝ち（自分の負け）= 暗い青 */
 .round-indicator.enemy-win {
+    background: #2a4a6a;
+    border-color: #2a4a6a;
+    box-shadow: none;
+}
+
+/* 敵の負け（自分の勝ち）= 明るい赤 */
+.round-indicator.enemy-lose {
     background: #f35e5e;
     border-color: #f35e5e;
     box-shadow: 0 0 10px rgba(243, 94, 94, 0.6);

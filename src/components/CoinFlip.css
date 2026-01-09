@@ -16,12 +16,83 @@
 .coin-flip-bg {
     position: absolute;
     inset: 0;
-    background: linear-gradient(180deg, 
-        #0a0608 0%, 
-        #1a1015 30%, 
-        #150a10 70%, 
-        #0a0608 100%
-    );
+    background: rgba(0, 0, 0, 0.85);
+}
+
+/* 敵情報バー */
+.coin-flip-enemy-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 12px 16px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+    background: linear-gradient(180deg, rgba(30, 20, 15, 0.9), transparent);
+    z-index: 20;
+}
+
+/* プレイヤー情報バー */
+.coin-flip-player-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 12px 16px;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 12px;
+    background: linear-gradient(0deg, rgba(30, 20, 15, 0.9), transparent);
+    z-index: 20;
+}
+
+.coin-flip-enemy-bar .player-name,
+.coin-flip-player-bar .player-name {
+    font-family: 'Cinzel', serif;
+    font-size: 1rem;
+    color: #c9a227;
+    text-shadow: 0 0 5px rgba(201, 162, 39, 0.3);
+}
+
+.coin-flip-enemy-bar .match-indicators,
+.coin-flip-player-bar .match-indicators {
+    display: flex;
+    gap: 4px;
+}
+
+.coin-flip-enemy-bar .match-indicator,
+.coin-flip-player-bar .match-indicator {
+    font-size: 0.8rem;
+    color: rgba(100, 80, 60, 0.5);
+    text-shadow: none;
+}
+
+/* 勝敗色: 自分視点 */
+/* 自分の勝ち = 明るい青 */
+.coin-flip-player-bar .match-indicator.win {
+    color: #5ed3f3;
+    text-shadow: 0 0 8px rgba(94, 211, 243, 0.6);
+}
+
+/* 自分の負け = 暗い赤 */
+.coin-flip-player-bar .match-indicator.lose {
+    color: #6a2a2a;
+    text-shadow: none;
+}
+
+/* 敵の勝ち = 暗い青 */
+.coin-flip-enemy-bar .match-indicator.win {
+    color: #2a4a6a;
+    text-shadow: none;
+}
+
+/* 敵の負け = 明るい赤 */
+.coin-flip-enemy-bar .match-indicator.lose {
+    color: #f35e5e;
+    text-shadow: 0 0 8px rgba(243, 94, 94, 0.6);
 }
 
 /* 指示テキスト */

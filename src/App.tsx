@@ -438,7 +438,15 @@ function App() {
 
   // 画面に応じた表示
   if (screen === 'coinFlip') {
-    return <CoinFlip onComplete={handleCoinFlipComplete} />;
+    return (
+      <CoinFlip 
+        onComplete={handleCoinFlipComplete}
+        player1Wins={matchState.player1Wins}
+        player2Wins={matchState.player2Wins}
+        playerName="あなた"
+        enemyName="CPU"
+      />
+    );
   }
 
   if (screen === 'roundStart') {

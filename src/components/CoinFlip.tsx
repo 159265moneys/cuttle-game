@@ -5,9 +5,19 @@ const BASE_URL = import.meta.env.BASE_URL || '/';
 
 interface CoinFlipProps {
   onComplete: (playerGoesFirst: boolean) => void;
+  player1Wins: number;
+  player2Wins: number;
+  playerName: string;
+  enemyName: string;
 }
 
-const CoinFlip: React.FC<CoinFlipProps> = ({ onComplete }) => {
+const CoinFlip: React.FC<CoinFlipProps> = ({ 
+  onComplete, 
+  player1Wins, 
+  player2Wins,
+  playerName,
+  enemyName,
+}) => {
   const [phase, setPhase] = useState<'ready' | 'flipping' | 'result'>('ready');
   const [result, setResult] = useState<'heads' | 'tails' | null>(null);
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -66,9 +76,32 @@ const CoinFlip: React.FC<CoinFlipProps> = ({ onComplete }) => {
     maskImage: `url(${BASE_URL}sprite/back/backmain.png)`,
   });
 
+  // マッチインジケーターをレンダリング
+  const renderMatchIndicators = (wins: number, losses: number, isEnemy: boolean) => {
+    const indicators = [];
+    for (let i = 0; i < 2; i++) {
+      let className = 'match-indicator';
+      if (i < wins) {
+        className += isEnemy ? ' lose' : ' win'; // 敵の勝ち=自分の負け色、自分の勝ち=勝ち色
+      } else if (i < wins + losses) {
+        className += isEnemy ? ' win' : ' lose'; // 敵の負け=自分の勝ち色、自分の負け=負け色
+      }
+      indicators.push(<span key={i} className={className}>●</span>);
+    }
+    return indicators;
+  };
+
   return (
     <div className="coin-flip-screen">
       <div className="coin-flip-bg" />
+      
+      {/* 敵情報バー */}
+      <div className="coin-flip-enemy-bar">
+        <span className="player-name">{enemyName}</span>
+        <div className="match-indicators">
+          {renderMatchIndicators(player2Wins, player1Wins, true)}
+        </div>
+      </div>
       
       {phase === 'ready' && (
         <div className="coin-instruction">
@@ -135,6 +168,14 @@ const CoinFlip: React.FC<CoinFlipProps> = ({ onComplete }) => {
           </div>
         </div>
       )}
+      
+      {/* プレイヤー情報バー */}
+      <div className="coin-flip-player-bar">
+        <span className="player-name">{playerName}</span>
+        <div className="match-indicators">
+          {renderMatchIndicators(player1Wins, player2Wins, false)}
+        </div>
+      </div>
     </div>
   );
 };

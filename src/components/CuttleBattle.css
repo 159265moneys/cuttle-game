@@ -63,7 +63,7 @@
     transition: all 0.3s ease;
 }
 
-/* プレイヤー側: 勝ち=水色、負け=暗い赤 */
+/* プレイヤー側: 勝ち=明るい青、負け=暗い赤 */
 .cuttle-status-bar .match-indicator.win {
     background: #5ed3f3;
     border-color: #5ed3f3;
@@ -71,20 +71,22 @@
 }
 
 .cuttle-status-bar .match-indicator.lose {
-    background: #4a1a1a;
+    background: #6a2a2a;
     border-color: #6a2a2a;
+    box-shadow: none;
 }
 
-/* 敵側: 勝ち=明るい赤、負け=暗い青 */
+/* 敵側: 勝ち（自分の負け）=暗い青、負け（自分の勝ち）=明るい赤 */
 .cuttle-enemy-info .match-indicator.win {
-    background: #f35e5e;
-    border-color: #f35e5e;
-    box-shadow: 0 0 8px rgba(243, 94, 94, 0.6);
+    background: #2a4a6a;
+    border-color: #2a4a6a;
+    box-shadow: none;
 }
 
 .cuttle-enemy-info .match-indicator.lose {
-    background: #1a2a4a;
-    border-color: #2a3a5a;
+    background: #f35e5e;
+    border-color: #f35e5e;
+    box-shadow: 0 0 8px rgba(243, 94, 94, 0.6);
 }
 
 /* ========== プレイヤー/敵 アイコンコンテナ（高レイヤー） ========== */
@@ -114,6 +116,10 @@
     position: absolute;
     top: 0;
     left: 0;
+}
+
+.hp-ring-svg circle {
+    transition: stroke-dasharray 0.5s ease-out, stroke-dashoffset 0.5s ease-out;
 }
 
 .hp-ring-filled {
