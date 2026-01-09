@@ -420,10 +420,10 @@
     background: radial-gradient(ellipse at center, rgba(201, 160, 48, 0.08) 0%, transparent 70%);
 }
 
-/* ========== 敵 効果エリア (12%) - 赤ベース ========== */
+/* ========== 敵 効果エリア (14%) - 赤ベース ========== */
 .cuttle-enemy-effects {
-    height: 12%;
-    min-height: 70px;
+    height: 14%;
+    min-height: 80px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -442,10 +442,10 @@
     color: rgba(232, 224, 212, 0.4);
 }
 
-/* ========== 敵 点数エリア (11%) - 赤ベース ========== */
+/* ========== 敵 点数エリア (13%) - 赤ベース ========== */
 .cuttle-enemy-points-area {
-    height: 11%;
-    min-height: 70px;
+    height: 13%;
+    min-height: 80px;
     position: relative;
     display: flex;
     justify-content: center;
@@ -800,10 +800,10 @@
     line-height: 1.3;
 }
 
-/* ========== 自分 点数エリア (20%) - 青ベース ========== */
+/* ========== 自分 点数エリア (18%) - 青ベース ========== */
 .cuttle-player-points-area {
-    height: 20%;
-    min-height: 115px;
+    height: 18%;
+    min-height: 105px;
     position: relative;
     display: flex;
     justify-content: center;
@@ -814,10 +814,10 @@
     z-index: 11;
 }
 
-/* ========== 自分 効果エリア (15%) - 青ベース ========== */
+/* ========== 自分 効果エリア (13%) - 青ベース ========== */
 .cuttle-player-effects {
-    height: 15%;
-    min-height: 90px;
+    height: 13%;
+    min-height: 80px;
     display: flex;
     justify-content: center;
     align-items: center;
