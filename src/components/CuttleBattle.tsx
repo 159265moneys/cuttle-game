@@ -26,6 +26,9 @@ interface CuttleBattleProps {
   onCancel: () => void;
   isCPUTurn: boolean;
   matchInfo?: MatchInfo;
+  isDealing?: boolean; // カード配り演出中
+  onDealingComplete?: () => void; // 配り終わったら呼ぶ
+  playerGoesFirst?: boolean; // プレイヤーが先攻かどうか
 }
 
 type Mode = 'default' | 'browsing' | 'dragging';
@@ -200,6 +203,9 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   onSevenOptionB,
   isCPUTurn,
   matchInfo,
+  isDealing = false,
+  onDealingComplete,
+  playerGoesFirst = true,
 }) => {
   // UIモード
   const [mode, setMode] = useState<Mode>('default');
@@ -237,7 +243,16 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   const playerIconRef = useRef<HTMLDivElement>(null);
   const enemyIconRef = useRef<HTMLDivElement>(null);
   
-  // カード配り/ドロー演出用（後で実装）
+  // カード配り演出用
+  interface DealingCard {
+    id: number;
+    startX: number;
+    startY: number;
+    endX: number;
+    endY: number;
+    rotation: number;
+  }
+  const [dealingCards, setDealingCards] = useState<DealingCard[]>([]);
   const deckRef = useRef<HTMLDivElement>(null);
   
   // 攻撃/破壊演出用
@@ -330,8 +345,81 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
     spawnGlassShards(targetX, targetY);
   }, [spawnGlassShards]);
   
-  // ドロー演出（App.tsxから呼び出し必要 - 後で統合）
-  // TODO: ドローボタン押下時にplayDrawAnimation()を呼び出す
+  // カード配り演出
+  useEffect(() => {
+    if (!isDealing || !deckRef.current) return;
+    
+    const deckRect = deckRef.current.getBoundingClientRect();
+    const startX = deckRect.left + deckRect.width / 2;
+    const startY = deckRect.top + deckRect.height / 2;
+    
+    // 配る先の座標を計算
+    const screenHeight = window.innerHeight;
+    const screenWidth = window.innerWidth;
+    
+    // 敵手札エリア（上部）
+    const enemyHandY = 100;
+    // プレイヤー手札エリア（下部）
+    const playerHandY = screenHeight - 100;
+    
+    // 後攻（6枚）から先に配る
+    const secondPlayerCards = 6;
+    const firstPlayerCards = 5;
+    
+    // プレイヤーが先攻なら敵が後攻（6枚）なので敵から配る
+    const enemyIsSecond = playerGoesFirst;
+    
+    const newDealingCards: DealingCard[] = [];
+    let cardId = 0;
+    
+    // 1枚目のプレイヤー（後攻、6枚）
+    const firstTarget = enemyIsSecond ? 'enemy' : 'player';
+    for (let i = 0; i < secondPlayerCards; i++) {
+      const endX = screenWidth / 2 + (i - secondPlayerCards / 2) * 30 - startX;
+      const endY = (firstTarget === 'enemy' ? enemyHandY : playerHandY) - startY;
+      newDealingCards.push({
+        id: cardId++,
+        startX,
+        startY,
+        endX,
+        endY,
+        rotation: (Math.random() - 0.5) * 10,
+      });
+    }
+    
+    // 2枚目のプレイヤー（先攻、5枚）
+    const secondTarget = enemyIsSecond ? 'player' : 'enemy';
+    for (let i = 0; i < firstPlayerCards; i++) {
+      const endX = screenWidth / 2 + (i - firstPlayerCards / 2) * 30 - startX;
+      const endY = (secondTarget === 'enemy' ? enemyHandY : playerHandY) - startY;
+      newDealingCards.push({
+        id: cardId++,
+        startX,
+        startY,
+        endX,
+        endY,
+        rotation: (Math.random() - 0.5) * 10,
+      });
+    }
+    
+    // 順番にアニメーション開始
+    newDealingCards.forEach((card, index) => {
+      setTimeout(() => {
+        setDealingCards(prev => [...prev, card]);
+      }, index * 80); // 80msごとに1枚ずつ
+    });
+    
+    // 全て配り終わったら完了を通知
+    const totalCards = secondPlayerCards + firstPlayerCards;
+    const totalDuration = totalCards * 80 + 400; // 最後のカードのアニメーション時間も考慮
+    
+    const timer = setTimeout(() => {
+      setDealingCards([]);
+      onDealingComplete?.();
+    }, totalDuration);
+    
+    return () => clearTimeout(timer);
+  }, [isDealing, playerGoesFirst, onDealingComplete]);
   
   // HPリングのSVGパスを生成（連続した円弧、上から時計回り）
   const renderHPRing = (filled: number, goldFill: number, isEnemy: boolean, size: number) => {
@@ -1736,7 +1824,25 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
         </div>
       ))}
       
-      {/* ドロー演出（後で実装） */}
+      {/* カード配り演出 */}
+      {dealingCards.map(card => (
+        <div
+          key={card.id}
+          className="dealing-card dealing-active"
+          style={{
+            left: card.startX - 24,
+            top: card.startY - 33,
+            '--deal-x': `${card.endX}px`,
+            '--deal-y': `${card.endY}px`,
+            '--deal-rotate': `${card.rotation}deg`,
+          } as React.CSSProperties}
+        />
+      ))}
+      
+      {/* 配り中は操作不可オーバーレイ */}
+      {isDealing && (
+        <div className="dealing-overlay" />
+      )}
       
       {/* 閲覧モード オーバーレイ */}
       <div className={`cuttle-overlay ${mode === 'browsing' ? 'active' : ''}`} />

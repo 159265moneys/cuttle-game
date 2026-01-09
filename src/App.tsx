@@ -37,6 +37,9 @@ function App() {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   
+  // カード配り演出中かどうか
+  const [isDealing, setIsDealing] = useState(false);
+  
   // ゲームオーバー処理済みフラグ（重複実行を防止）
   const gameOverProcessedRef = useRef(false);
 
@@ -50,8 +53,16 @@ function App() {
     // 新しいゲーム開始時にフラグをリセット
     gameOverProcessedRef.current = false;
     
+    // カード配り演出を開始
+    setIsDealing(true);
+    
     setGameState(state);
     setScreen('battle');
+  }, []);
+  
+  // カード配り演出完了
+  const handleDealingComplete = useCallback(() => {
+    setIsDealing(false);
   }, []);
 
   // コイントス完了 → ROUND 1 START演出へ
@@ -485,6 +496,9 @@ function App() {
         player1Wins: matchState.player1Wins,
         player2Wins: matchState.player2Wins,
       }}
+      isDealing={isDealing}
+      onDealingComplete={handleDealingComplete}
+      playerGoesFirst={matchState.playerStartsFirst}
     />
   );
 }
