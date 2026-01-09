@@ -76,10 +76,10 @@ const CoinFlip: React.FC<CoinFlipProps> = ({
     maskImage: `url(${BASE_URL}sprite/back/backmain.png)`,
   });
 
-  // マッチインジケーターをレンダリング
+  // マッチインジケーターをレンダリング（3つ）
   const renderMatchIndicators = (wins: number, losses: number, isEnemy: boolean) => {
     const indicators = [];
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < 3; i++) {
       let className = 'match-indicator';
       if (i < wins) {
         className += isEnemy ? ' lose' : ' win'; // 敵の勝ち=自分の負け色、自分の勝ち=勝ち色

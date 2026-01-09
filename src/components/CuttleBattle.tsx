@@ -538,21 +538,9 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
     }
   }, [actionLogs]);
   
-  // ゲーム終了時にログクリア
-  useEffect(() => {
-    if (gameState.phase === 'gameOver') {
-      // ゲーム終了時はログをクリアしない（結果確認用）
-      // リスタート時にクリアする
-    }
-  }, [gameState.phase]);
-  
-  // ゲームリスタート検知（ターン1に戻った時）
-  useEffect(() => {
-    if (gameState.turnCount === 1 && actionLogs.length > 0) {
-      setActionLogs([]);
-      logIdRef.current = 0;
-    }
-  }, [gameState.turnCount]);
+  // 新しいラウンド開始検知用
+  const prevTurnCountRef = useRef(gameState.turnCount);
+  const isNewRoundRef = useRef(false);
   
   // ゲーム状態の変化を監視してログを追加
   const prevPhaseRef = useRef(gameState.phase);
@@ -565,6 +553,44 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   const prevCurrentPlayerRef = useRef(gameState.currentPlayer);
 
   useEffect(() => {
+    // 新しいラウンド開始を検知（turnCountが1に戻った時）
+    if (gameState.turnCount === 1 && prevTurnCountRef.current !== 1) {
+      // ログをリセットして「ROUND X START」を表示
+      logIdRef.current = 1;
+      const roundNum = matchInfo?.currentMatch || 1;
+      setActionLogs([{ id: 1, player: 'player1', message: `ROUND ${roundNum} START` }]);
+      isNewRoundRef.current = true;
+      
+      // prev refs をリセット（誤検知防止）
+      prevPhaseRef.current = gameState.phase;
+      prevPlayer1FieldRef.current = [];
+      prevPlayer2FieldRef.current = [];
+      prevPlayer1HandRef.current = 0;
+      prevPlayer2HandRef.current = 0;
+      prevDeckRef.current = gameState.deck.length;
+      prevScrapRef.current = 0;
+      prevCurrentPlayerRef.current = gameState.currentPlayer;
+      prevTurnCountRef.current = gameState.turnCount;
+      return;
+    }
+    
+    prevTurnCountRef.current = gameState.turnCount;
+    
+    // 新しいラウンド直後は変化検出をスキップ
+    if (isNewRoundRef.current) {
+      isNewRoundRef.current = false;
+      // prev refs を現在の状態に更新
+      prevPhaseRef.current = gameState.phase;
+      prevPlayer1FieldRef.current = player.field.map(fc => ({ ...fc, card: { ...fc.card } }));
+      prevPlayer2FieldRef.current = enemy.field.map(fc => ({ ...fc, card: { ...fc.card } }));
+      prevPlayer1HandRef.current = player.hand.length;
+      prevPlayer2HandRef.current = enemy.hand.length;
+      prevDeckRef.current = gameState.deck.length;
+      prevScrapRef.current = gameState.scrapPile.length;
+      prevCurrentPlayerRef.current = gameState.currentPlayer;
+      return;
+    }
+    
     // 変化量を検出
     const p1FieldDiff = player.field.length - prevPlayer1FieldRef.current.length;
     const p2FieldDiff = enemy.field.length - prevPlayer2FieldRef.current.length;
@@ -655,7 +681,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
     prevDeckRef.current = gameState.deck.length;
     prevScrapRef.current = gameState.scrapPile.length;
     prevCurrentPlayerRef.current = gameState.currentPlayer;
-  }, [gameState, player.field, enemy.field, player.hand, enemy.hand, addLog, spawnPointParticles]);
+  }, [gameState, player.field, enemy.field, player.hand, enemy.hand, addLog, spawnPointParticles, matchInfo?.currentMatch]);
   
   // 3の効果: 捨て札選択フェーズで自動的にモーダルを開く
   useEffect(() => {
