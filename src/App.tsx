@@ -311,12 +311,10 @@ function App() {
 
     switch (action) {
       case 'playKnight':
+        // playKnight内で正しくhasQueenチェックを行うのでここでは省略
+        // （自分の奪われたカードを取り返す場合はQがあっても可能）
         if (target && target.card.value > 0) {
-          const opponentId = getOpponent(gameState.currentPlayer);
-          const opponent = gameState[opponentId];
-          if (!hasQueen(opponent)) {
-            setGameState(playKnight(gameState, card, target));
-          }
+          setGameState(playKnight(gameState, card, target));
         }
         break;
       

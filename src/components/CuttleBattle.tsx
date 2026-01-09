@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import type { GameState, Card, FieldCard, ActionType } from '../types/game';
-import { getCardEffect } from '../utils/gameLogic';
+import { getCardEffect, hasQueen } from '../utils/gameLogic';
 import './CuttleBattle.css';
 
 // ========================================
@@ -223,11 +223,36 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   const logIdRef = useRef(0);
   const logContainerRef = useRef<HTMLDivElement>(null);
   
-  // パーティクルエフェクト用
-  const [particles, setParticles] = useState<{id: number; target: 'player' | 'enemy'; x: number; y: number}[]>([]);
+  // パーティクルエフェクト用（修正版：正確な座標）
+  interface PointParticle {
+    id: number;
+    target: 'player' | 'enemy';
+    startX: number;
+    startY: number;
+    endX: number;
+    endY: number;
+  }
+  const [pointParticles, setPointParticles] = useState<PointParticle[]>([]);
   const particleIdRef = useRef(0);
   const playerIconRef = useRef<HTMLDivElement>(null);
   const enemyIconRef = useRef<HTMLDivElement>(null);
+  
+  // カード配り/ドロー演出用（後で実装）
+  const deckRef = useRef<HTMLDivElement>(null);
+  
+  // 攻撃/破壊演出用
+  const [attackFlash, setAttackFlash] = useState(false);
+  const [screenShake, setScreenShake] = useState(false);
+  interface GlassShard {
+    id: number;
+    x: number;
+    y: number;
+    size: number;
+    velocityX: number;
+    velocityY: number;
+    rotation: number;
+  }
+  const [glassShards, setGlassShards] = useState<GlassShard[]>([]);
   
   // refs
   const screenRef = useRef<HTMLDivElement>(null);
@@ -240,25 +265,73 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   const player = gameState.player1;
   const enemy = gameState.player2;
   
-  // パーティクル生成関数
-  type ParticleData = {id: number; target: 'player' | 'enemy'; x: number; y: number};
-  const spawnParticles = useCallback((target: 'player' | 'enemy', startX: number, startY: number) => {
-    const newParticles: ParticleData[] = [];
-    for (let i = 0; i < 8; i++) {
+  // ポイント獲得パーティクル生成（修正版：正確な座標でアイコンへ飛ばす）
+  const spawnPointParticles = useCallback((target: 'player' | 'enemy', startX: number, startY: number) => {
+    const iconRef = target === 'player' ? playerIconRef : enemyIconRef;
+    if (!iconRef.current) return;
+    
+    const iconRect = iconRef.current.getBoundingClientRect();
+    const endX = iconRect.left + iconRect.width / 2;
+    const endY = iconRect.top + iconRect.height / 2;
+    
+    const newParticles: PointParticle[] = [];
+    for (let i = 0; i < 10; i++) {
       particleIdRef.current += 1;
       newParticles.push({
         id: particleIdRef.current,
         target,
-        x: startX + (Math.random() - 0.5) * 60,
-        y: startY + (Math.random() - 0.5) * 40,
+        startX: startX + (Math.random() - 0.5) * 40,
+        startY: startY + (Math.random() - 0.5) * 30,
+        endX: endX - startX + (Math.random() - 0.5) * 20,
+        endY: endY - startY + (Math.random() - 0.5) * 20,
       });
     }
-    setParticles(prev => [...prev, ...newParticles]);
+    setPointParticles(prev => [...prev, ...newParticles]);
+    
     // 1秒後にパーティクルを削除
     setTimeout(() => {
-      setParticles(prev => prev.filter(p => !newParticles.find(np => np.id === p.id)));
+      setPointParticles(prev => prev.filter(p => !newParticles.find(np => np.id === p.id)));
     }, 1000);
   }, []);
+  
+  // ガラス破砕エフェクト
+  const spawnGlassShards = useCallback((x: number, y: number) => {
+    const shards: GlassShard[] = [];
+    for (let i = 0; i < 12; i++) {
+      shards.push({
+        id: Date.now() + i,
+        x,
+        y,
+        size: 8 + Math.random() * 12,
+        velocityX: (Math.random() - 0.5) * 150,
+        velocityY: (Math.random() - 0.5) * 150,
+        rotation: Math.random() * 720 - 360,
+      });
+    }
+    setGlassShards(prev => [...prev, ...shards]);
+    
+    // 0.6秒後に削除
+    setTimeout(() => {
+      setGlassShards(prev => prev.filter(s => !shards.find(ns => ns.id === s.id)));
+    }, 600);
+  }, []);
+  
+  // 攻撃演出（フラッシュ＋画面振動＋ガラス破砕）
+  const playAttackAnimation = useCallback((targetX: number, targetY: number) => {
+    // フラッシュ
+    setAttackFlash(true);
+    setTimeout(() => setAttackFlash(false), 150);
+    
+    // 画面振動
+    setScreenShake(true);
+    setTimeout(() => setScreenShake(false), 200);
+    
+    // ガラス破砕
+    spawnGlassShards(targetX, targetY);
+  }, [spawnGlassShards]);
+  
+  // ドロー演出（App.tsxから呼び出し必要 - 後で統合）
+  // TODO: ドローボタン押下時にplayDrawAnimation()を呼び出す
   
   // HPリングのSVGパスを生成（連続した円弧、上から時計回り）
   const renderHPRing = (filled: number, goldFill: number, isEnemy: boolean, size: number) => {
@@ -536,6 +609,18 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   const executeAttack = useCallback(() => {
     if (!pendingCard || !pendingTarget) return;
     
+    // 攻撃演出（対象カードの位置でガラス破砕）
+    // 敵のポイントカードの位置を取得
+    const targetIndex = enemyPointCards.findIndex(fc => fc.card.id === pendingTarget.card.id);
+    if (targetIndex >= 0) {
+      const targetElements = document.querySelectorAll('.cuttle-enemy-points-area .cuttle-field-card-wrapper');
+      const targetEl = targetElements[targetIndex];
+      if (targetEl) {
+        const rect = targetEl.getBoundingClientRect();
+        playAttackAnimation(rect.left + rect.width / 2, rect.top + rect.height / 2);
+      }
+    }
+    
     // 直接アクション実行（状態のクロージャ問題を回避）
     const attackerRace = RACE_NAMES[pendingCard.race] || pendingCard.race;
     const targetRace = RACE_NAMES[pendingTarget.card.race] || pendingTarget.card.race;
@@ -543,11 +628,36 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
     addLog('player1', `${attackerRace}${pendingCard.rank}で${targetRace}${pendingTarget.card.rank}にアタック`);
     
     closeActionModal();
-  }, [pendingCard, pendingTarget, onDirectAction, addLog, closeActionModal]);
+  }, [pendingCard, pendingTarget, onDirectAction, addLog, closeActionModal, enemyPointCards, playAttackAnimation]);
   
   // 効果発動実行（直接アクションを使用）
   const executeEffect = useCallback(() => {
     if (!pendingCard || !pendingTarget) return;
+    
+    // 破壊系効果（A, 2）の場合は攻撃演出
+    if (['A', '2'].includes(pendingCard.rank)) {
+      // 対象カードの位置を取得
+      let targetEl: Element | null = null;
+      if (pendingCard.rank === 'A') {
+        // 敵のポイントカード
+        const targetIndex = enemyPointCards.findIndex(fc => fc.card.id === pendingTarget.card.id);
+        if (targetIndex >= 0) {
+          const targetElements = document.querySelectorAll('.cuttle-enemy-points-area .cuttle-field-card-wrapper');
+          targetEl = targetElements[targetIndex];
+        }
+      } else if (pendingCard.rank === '2') {
+        // 敵の効果カード
+        const targetIndex = enemyEffectCards.findIndex(fc => fc.card.id === pendingTarget.card.id);
+        if (targetIndex >= 0) {
+          const targetElements = document.querySelectorAll('.cuttle-enemy-effects .cuttle-field-card-wrapper');
+          targetEl = targetElements[targetIndex];
+        }
+      }
+      if (targetEl) {
+        const rect = targetEl.getBoundingClientRect();
+        playAttackAnimation(rect.left + rect.width / 2, rect.top + rect.height / 2);
+      }
+    }
     
     // 直接アクション実行（状態のクロージャ問題を回避）
     if (pendingCard.rank === 'J') {
@@ -571,7 +681,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
     }
     
     closeActionModal();
-  }, [pendingCard, pendingTarget, onDirectAction, addLog, closeActionModal]);
+  }, [pendingCard, pendingTarget, onDirectAction, addLog, closeActionModal, enemyPointCards, enemyEffectCards, playAttackAnimation]);
   
   // タッチ開始
   const handleTouchStart = useCallback((e: React.TouchEvent | React.MouseEvent, index: number) => {
@@ -752,11 +862,8 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
             onCardSelect(card); // カードを選択状態にしてから
             onAction('playPoint');
             addLog('player1', `${raceName}${card.rank}を場にセット`);
-            // パーティクルエフェクト
-            if (playerPointsRef.current) {
-              const rect = playerPointsRef.current.getBoundingClientRect();
-              spawnParticles('player', rect.left + rect.width / 2, rect.top + rect.height / 2);
-            }
+            // ポイント獲得パーティクルエフェクト（ドロップ位置からアイコンへ）
+            spawnPointParticles('player', touchCurrent.x, touchCurrent.y);
           }
         } else if (dropTarget === 'playerEffects') {
           // 効果として出す
@@ -1099,15 +1206,22 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
     
     const margin = getCardMargin(cards.length, 6);
     
+    // Q保護判定
+    const ownerHasQueen = isEnemy ? hasQueen(enemy) : hasQueen(player);
+    
     return (
       <div className="cuttle-field-cards-full">
         {cards.map((fc, i) => {
           const isDropTargetEnemy = dropTarget === `enemyCard:${i}` && isEnemy;
           const isDropTargetPlayer = dropTarget === `playerCard:${i}` && !isEnemy;
           const isDropTarget = isDropTargetEnemy || isDropTargetPlayer;
+          // ドラッグ中のホバーハイライト（青い発光）
+          const isDragHoverTarget = mode === 'dragging' && isDropTarget;
           const pipLayout = PIP_LAYOUTS[fc.card.rank];
           // 敵に支配されている自分のカード（J counter target）
           const isStolenByEnemy = !isEnemy && fc.controller === 'player2';
+          // Q保護（点数カードのみ、かつownerのQで保護）
+          const isQueenProtected = fc.card.value > 0 && ownerHasQueen && fc.controller === fc.owner;
           
           return (
             <div
@@ -1117,7 +1231,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
             >
               {/* カード本体 */}
               <div
-                className={`cuttle-field-card-full ${getSuitClass(fc.card)} ${fc.controller !== fc.owner ? 'stolen' : ''} ${isStolenByEnemy ? 'stolen-by-enemy' : ''} ${isDropTarget ? 'drop-target' : ''}`}
+                className={`cuttle-field-card-full ${getSuitClass(fc.card)} ${fc.controller !== fc.owner ? 'stolen' : ''} ${isStolenByEnemy ? 'stolen-by-enemy' : ''} ${isDropTarget ? 'drop-target' : ''} ${isDragHoverTarget ? 'drag-hover-target' : ''} ${isQueenProtected ? `queen-protected ${isEnemy ? 'enemy-protected' : 'player-protected'}` : ''}`}
               onClick={() => {
                 if (gameState.phase === 'selectTarget' && isEnemy) {
                   onFieldCardSelect(fc);
@@ -1239,7 +1353,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   const isWin = gameState.winner === 'player1';
   
   return (
-    <div ref={screenRef} className={`cuttle-battle ${isOpen ? 'active' : ''}`}>
+    <div ref={screenRef} className={`cuttle-battle ${isOpen ? 'active' : ''} ${screenShake ? 'screen-shake' : ''}`}>
       {/* 敵情報バー - 右寄せ: 名前 | 点数 | マッチインジケーター */}
       <div className="cuttle-enemy-info">
         <div className="cuttle-player-info-row right-aligned">
@@ -1383,7 +1497,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
       {/* 山札・メッセージ・墓地 */}
       <div className="cuttle-deck-area">
         {/* 山札 - 裏面カード積み重ね表示 */}
-        <div className="cuttle-pile-stack deck-pile">
+        <div ref={deckRef} className="cuttle-pile-stack deck-pile">
           {gameState.deck.length === 0 ? (
             <div className="cuttle-deck-card empty">
               <span className="pile-count">0</span>
@@ -1585,23 +1699,44 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
       {/* 下部余白 */}
       <div className="cuttle-bottom-spacer" />
       
-      {/* パーティクルエフェクト */}
-      {particles.map(p => (
+      {/* ポイント獲得パーティクルエフェクト（修正版） */}
+      {pointParticles.map(p => (
         <div
           key={p.id}
-          className={`particle ${p.target}`}
+          className={`point-particle ${p.target}`}
           style={{
-            left: p.x,
-            top: p.y,
-            '--target-x': p.target === 'player' 
-              ? `${(playerIconRef.current?.offsetLeft || 40) + 40}px`
-              : `${(enemyIconRef.current?.offsetLeft || 320) + 32}px`,
-            '--target-y': p.target === 'player'
-              ? `${(playerIconRef.current?.offsetTop || 640) + 40}px`
-              : `${(enemyIconRef.current?.offsetTop || 28) + 32}px`,
+            left: p.startX,
+            top: p.startY,
+            '--end-x': `${p.endX}px`,
+            '--end-y': `${p.endY}px`,
           } as React.CSSProperties}
         />
       ))}
+      
+      {/* 攻撃フラッシュ */}
+      {attackFlash && <div className="attack-flash-overlay" />}
+      
+      {/* ガラス破砕エフェクト */}
+      {glassShards.map(shard => (
+        <div
+          key={shard.id}
+          className="glass-shatter-container"
+          style={{ left: shard.x, top: shard.y }}
+        >
+          <div
+            className="glass-shard"
+            style={{
+              width: shard.size,
+              height: shard.size,
+              '--shard-x': `${shard.velocityX}px`,
+              '--shard-y': `${shard.velocityY}px`,
+              '--shard-rotate': `${shard.rotation}deg`,
+            } as React.CSSProperties}
+          />
+        </div>
+      ))}
+      
+      {/* ドロー演出（後で実装） */}
       
       {/* 閲覧モード オーバーレイ */}
       <div className={`cuttle-overlay ${mode === 'browsing' ? 'active' : ''}`} />

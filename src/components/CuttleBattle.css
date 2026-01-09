@@ -2519,3 +2519,224 @@
     transform: scale(0.98);
 }
 
+/* ========== Q保護オーバーレイ ========== */
+/* プレイヤーの点数カードがQで保護されている時 */
+.cuttle-field-card-full.queen-protected.player-protected {
+    box-shadow: 
+        inset 0 0 20px rgba(94, 211, 243, 0.35),
+        0 0 12px rgba(94, 211, 243, 0.4),
+        0 2px 6px rgba(0, 0, 0, 0.5) !important;
+}
+
+.cuttle-field-card-full.queen-protected.player-protected::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(94, 211, 243, 0.15) 0%, transparent 70%);
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: 5;
+}
+
+/* 敵の点数カードがQで保護されている時 */
+.cuttle-field-card-full.queen-protected.enemy-protected {
+    box-shadow: 
+        inset 0 0 20px rgba(243, 94, 94, 0.35),
+        0 0 12px rgba(243, 94, 94, 0.4),
+        0 2px 6px rgba(0, 0, 0, 0.5) !important;
+}
+
+.cuttle-field-card-full.queen-protected.enemy-protected::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(243, 94, 94, 0.15) 0%, transparent 70%);
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: 5;
+}
+
+/* ========== ドラッグ中のターゲットハイライト ========== */
+.cuttle-field-card-full.drag-hover-target {
+    box-shadow: 
+        0 0 20px rgba(94, 211, 243, 0.8),
+        0 0 40px rgba(94, 211, 243, 0.5),
+        inset 0 0 10px rgba(94, 211, 243, 0.3) !important;
+    border-color: #5ed3f3 !important;
+    transform: translateY(-5px) scale(1.05);
+    transition: all 0.15s ease-out;
+}
+
+/* ========== カード配り演出 ========== */
+.dealing-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9998;
+    pointer-events: none;
+}
+
+.dealing-card {
+    position: absolute;
+    width: 48px;
+    aspect-ratio: 5 / 7;
+    background: linear-gradient(135deg, #3a2a25 0%, #201510 100%);
+    border: 2px solid rgba(100, 80, 60, 0.8);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+    opacity: 0;
+    z-index: 9999;
+}
+
+.dealing-card.dealing-active {
+    animation: deal-card 0.35s ease-out forwards;
+}
+
+@keyframes deal-card {
+    0% {
+        opacity: 1;
+        transform: translate(0, 0) rotate(0deg);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(var(--deal-x), var(--deal-y)) rotate(var(--deal-rotate));
+    }
+}
+
+/* ドロー演出 */
+.draw-card-animation {
+    position: fixed;
+    width: 48px;
+    aspect-ratio: 5 / 7;
+    background: linear-gradient(135deg, #3a2a25 0%, #201510 100%);
+    border: 2px solid rgba(100, 80, 60, 0.8);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+    z-index: 9999;
+    pointer-events: none;
+    animation: draw-card-fly 0.4s ease-out forwards;
+}
+
+@keyframes draw-card-fly {
+    0% {
+        opacity: 1;
+        transform: translate(0, 0) scale(1);
+    }
+    80% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        transform: translate(var(--draw-x), var(--draw-y)) scale(0.8);
+    }
+}
+
+/* ========== ポイント獲得パーティクル（修正版） ========== */
+.point-particle {
+    position: fixed;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 10000;
+}
+
+.point-particle.player {
+    background: radial-gradient(circle, #5ed3f3 0%, #3a9ac9 50%, transparent 100%);
+    box-shadow: 0 0 10px #5ed3f3, 0 0 20px #5ed3f3;
+    animation: particle-to-icon 0.8s ease-in forwards;
+}
+
+.point-particle.enemy {
+    background: radial-gradient(circle, #f35e5e 0%, #c93a3a 50%, transparent 100%);
+    box-shadow: 0 0 10px #f35e5e, 0 0 20px #f35e5e;
+    animation: particle-to-icon 0.8s ease-in forwards;
+}
+
+@keyframes particle-to-icon {
+    0% {
+        opacity: 1;
+        transform: translate(0, 0) scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: translate(calc(var(--end-x) * 0.3), calc(var(--end-y) * 0.3)) scale(1.2);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(var(--end-x), var(--end-y)) scale(0.3);
+    }
+}
+
+/* ========== アタック/破壊演出 - ガラス破砕 ========== */
+.attack-flash-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.3);
+    z-index: 9998;
+    pointer-events: none;
+    animation: attack-flash 0.15s ease-out forwards;
+}
+
+@keyframes attack-flash {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+.screen-shake {
+    animation: screen-shake 0.2s ease-out;
+}
+
+@keyframes screen-shake {
+    0%, 100% { transform: translate(0, 0); }
+    20% { transform: translate(-3px, 2px); }
+    40% { transform: translate(3px, -2px); }
+    60% { transform: translate(-2px, -1px); }
+    80% { transform: translate(2px, 1px); }
+}
+
+/* ガラス破片 */
+.glass-shatter-container {
+    position: fixed;
+    pointer-events: none;
+    z-index: 10001;
+}
+
+.glass-shard {
+    position: absolute;
+    background: linear-gradient(135deg, rgba(200, 180, 150, 0.9), rgba(150, 130, 100, 0.7));
+    border: 1px solid rgba(100, 80, 60, 0.5);
+    clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+    animation: shard-explode 0.5s ease-out forwards;
+}
+
+@keyframes shard-explode {
+    0% {
+        opacity: 1;
+        transform: translate(0, 0) rotate(0deg) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(var(--shard-x), var(--shard-y)) rotate(var(--shard-rotate)) scale(0.3);
+    }
+}
+
+/* 破壊時のカードハイライト */
+.card-being-destroyed {
+    animation: destroy-highlight 0.3s ease-out;
+}
+
+@keyframes destroy-highlight {
+    0% {
+        filter: brightness(1);
+        transform: scale(1);
+    }
+    50% {
+        filter: brightness(2);
+        transform: scale(1.1);
+    }
+    100% {
+        filter: brightness(1);
+        transform: scale(1);
+    }
+}
+
