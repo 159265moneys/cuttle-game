@@ -449,8 +449,11 @@ function App() {
 
   const isPlayerWin = matchState.player1Wins >= 2;
   
-  // 表示用のゲーム状態（オーバーレイ時はダミー状態を使用）
-  const displayGameState = backgroundGameState;
+  // 表示用のゲーム状態
+  // - バトル中は実際のgameStateを使用
+  // - オーバーレイ画面ではダミー状態を背景として使用
+  const displayGameState = (screen === 'battle' && gameState) ? gameState : backgroundGameState;
+  const isOverlayScreen = screen !== 'battle';
 
   // 常にゲーム盤面を表示し、その上にオーバーレイを重ねる
   return (
@@ -473,7 +476,7 @@ function App() {
           player1Wins: matchState.player1Wins,
           player2Wins: matchState.player2Wins,
         }}
-        isDealing={isDealing}
+        isDealing={!isOverlayScreen && isDealing}
         onDealingComplete={handleDealingComplete}
         playerGoesFirst={matchState.playerStartsFirst}
       />
