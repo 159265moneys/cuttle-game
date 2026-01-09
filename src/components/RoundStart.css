@@ -146,6 +146,9 @@
     transition: all 0.3s ease;
 }
 
+/* 自分勝ち時: 自分=明るい青、敵=暗い赤 */
+/* 自分負け時: 自分=暗い青、敵=明るい赤 */
+
 /* 自分の勝ち = 明るい青 */
 .round-indicator.player-win {
     background: #5ed3f3;
@@ -153,17 +156,17 @@
     box-shadow: 0 0 10px rgba(94, 211, 243, 0.6);
 }
 
-/* 自分の負け = 暗い赤 */
+/* 自分の負け = 暗い青 */
 .round-indicator.player-lose {
-    background: #6a2a2a;
-    border-color: #6a2a2a;
+    background: #2a4a6a;
+    border-color: #2a4a6a;
     box-shadow: none;
 }
 
-/* 敵の勝ち（自分の負け）= 暗い青 */
+/* 敵の勝ち（自分の負け）= 暗い赤 */
 .round-indicator.enemy-win {
-    background: #2a4a6a;
-    border-color: #2a4a6a;
+    background: #6a2a2a;
+    border-color: #6a2a2a;
     box-shadow: none;
 }
 

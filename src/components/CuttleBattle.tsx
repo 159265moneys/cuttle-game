@@ -462,6 +462,39 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
     };
   }, [isDealing, playerGoesFirst, onDealingComplete]);
   
+  // ドロー演出を再生
+  const playDrawAnimation = useCallback((target: 'player' | 'enemy') => {
+    if (!deckRef.current) return;
+    
+    const deckRect = deckRef.current.getBoundingClientRect();
+    const startX = deckRect.left + deckRect.width / 2;
+    const startY = deckRect.top + deckRect.height / 2;
+    
+    const screenHeight = window.innerHeight;
+    const screenWidth = window.innerWidth;
+    
+    // 配り先
+    const endY = target === 'player' ? screenHeight - 100 : 100;
+    const endX = screenWidth / 2;
+    
+    const newCard: DealingCard = {
+      id: Date.now(),
+      startX,
+      startY,
+      endX: endX - startX,
+      endY: endY - startY,
+      rotation: (Math.random() - 0.5) * 10,
+      target,
+    };
+    
+    setDealingCards(prev => [...prev, newCard]);
+    
+    // 0.4秒後にカードを削除
+    setTimeout(() => {
+      setDealingCards(prev => prev.filter(c => c.id !== newCard.id));
+    }, 400);
+  }, []);
+  
   // HPリングのSVGパスを生成（連続した円弧、上から時計回り）
   const renderHPRing = (filled: number, goldFill: number, isEnemy: boolean, size: number) => {
     const totalSegments = 21;
@@ -603,6 +636,8 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
     // CPUがドロー（ターンが変わり、手札が増え、デッキが減った）
     if (turnChanged && wasEnemyTurn && p2HandDiff > 0 && deckDiff < 0 && p2FieldDiff === 0 && p1FieldDiff >= 0) {
       addLog('player2', 'ドローした');
+      // ドロー演出
+      playDrawAnimation('enemy');
     }
     
     // CPUがカードをプレイ（フィールドが増えた）
@@ -633,11 +668,21 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
       for (const fc of destroyedCards) {
         const raceName = RACE_NAMES[fc.card.race] || fc.card.race;
         if (fc.card.value > 0) {
-          // アタックか効果で点数カードが破壊された
+          // アタックか効果で点数カードが破壊された - 演出を追加
           addLog('player2', `${raceName}${fc.card.rank}を破壊した`);
+          // プレイヤーの点数エリアで破壊演出
+          if (playerPointsRef.current) {
+            const rect = playerPointsRef.current.getBoundingClientRect();
+            playAttackAnimation(rect.left + rect.width / 2, rect.top + rect.height / 2);
+          }
         } else {
-          // 永続効果が破壊された
+          // 永続効果が破壊された - 演出を追加
           addLog('player2', `${raceName}${fc.card.rank}の永続効果を破壊`);
+          // プレイヤーの効果エリアで破壊演出
+          if (playerEffectsRef.current) {
+            const rect = playerEffectsRef.current.getBoundingClientRect();
+            playAttackAnimation(rect.left + rect.width / 2, rect.top + rect.height / 2);
+          }
         }
       }
     }
@@ -681,7 +726,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
     prevDeckRef.current = gameState.deck.length;
     prevScrapRef.current = gameState.scrapPile.length;
     prevCurrentPlayerRef.current = gameState.currentPlayer;
-  }, [gameState, player.field, enemy.field, player.hand, enemy.hand, addLog, spawnPointParticles, matchInfo?.currentMatch]);
+  }, [gameState, player.field, enemy.field, player.hand, enemy.hand, addLog, spawnPointParticles, matchInfo?.currentMatch, playAttackAnimation, playDrawAnimation]);
   
   // 3の効果: 捨て札選択フェーズで自動的にモーダルを開く
   useEffect(() => {
@@ -942,8 +987,8 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
         const enemyPointCardElements = document.querySelectorAll('.cuttle-enemy-points-area .cuttle-field-card-wrapper');
         enemyPointCardElements.forEach((card, i) => {
           const rect = card.getBoundingClientRect();
-          if (current.x >= rect.left && current.x <= rect.right &&
-              current.y >= rect.top && current.y <= rect.bottom) {
+        if (current.x >= rect.left && current.x <= rect.right &&
+            current.y >= rect.top && current.y <= rect.bottom) {
             newTarget = `enemyCard:${i}`;
             foundIndividualCard = true;
           }
@@ -955,30 +1000,30 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
         const playerPointCardElements = document.querySelectorAll('.cuttle-player-points-area .cuttle-field-card-wrapper');
         playerPointCardElements.forEach((card, i) => {
           const rect = card.getBoundingClientRect();
-          if (current.x >= rect.left && current.x <= rect.right &&
-              current.y >= rect.top && current.y <= rect.bottom) {
+        if (current.x >= rect.left && current.x <= rect.right &&
+            current.y >= rect.top && current.y <= rect.bottom) {
             newTarget = `playerCard:${i}`;
             foundIndividualCard = true;
-          }
+        }
         });
       }
       
       // ★ 個別カードが見つからなかった場合のみエリア判定 ★
       if (!foundIndividualCard) {
         // 敵の効果エリア（2で永続破壊）- 点数エリアより先に判定
-        if (enemyEffectsRef.current) {
-          const rect = enemyEffectsRef.current.getBoundingClientRect();
-          if (current.x >= rect.left && current.x <= rect.right &&
-              current.y >= rect.top && current.y <= rect.bottom) {
-            newTarget = 'enemyEffects';
-          }
+      if (enemyEffectsRef.current) {
+        const rect = enemyEffectsRef.current.getBoundingClientRect();
+        if (current.x >= rect.left && current.x <= rect.right &&
+            current.y >= rect.top && current.y <= rect.bottom) {
+          newTarget = 'enemyEffects';
         }
-        
+      }
+      
         // 敵の点数エリア（アタック/Jターゲット）
         if (!newTarget && enemyPointsRef.current) {
           const rect = enemyPointsRef.current.getBoundingClientRect();
-          if (current.x >= rect.left && current.x <= rect.right &&
-              current.y >= rect.top && current.y <= rect.bottom) {
+        if (current.x >= rect.left && current.x <= rect.right &&
+            current.y >= rect.top && current.y <= rect.bottom) {
             newTarget = 'enemyPoints';
           }
         }
@@ -986,8 +1031,8 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
         // 自分の点数エリア
         if (!newTarget && playerPointsRef.current) {
           const rect = playerPointsRef.current.getBoundingClientRect();
-          if (current.x >= rect.left && current.x <= rect.right &&
-              current.y >= rect.top && current.y <= rect.bottom) {
+        if (current.x >= rect.left && current.x <= rect.right &&
+            current.y >= rect.top && current.y <= rect.bottom) {
             newTarget = 'playerPoints';
           }
         }
@@ -995,10 +1040,10 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
         // 自分の効果エリア
         if (!newTarget && playerEffectsRef.current) {
           const rect = playerEffectsRef.current.getBoundingClientRect();
-          if (current.x >= rect.left && current.x <= rect.right &&
-              current.y >= rect.top && current.y <= rect.bottom) {
+        if (current.x >= rect.left && current.x <= rect.right &&
+            current.y >= rect.top && current.y <= rect.bottom) {
             newTarget = 'playerEffects';
-          }
+        }
         }
       }
       
@@ -1053,6 +1098,19 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
                 addLog('player1', `${raceName}5で2枚ドロー`);
               } else if (card.rank === '6') {
                 addLog('player1', `${raceName}6で全永続効果を破壊`);
+                // 6の効果: 両方の効果エリアで破壊演出
+                if (enemyEffectsRef.current && enemyEffectCards.length > 0) {
+                  const rect = enemyEffectsRef.current.getBoundingClientRect();
+                  playAttackAnimation(rect.left + rect.width / 2, rect.top + rect.height / 2);
+                }
+                if (playerEffectsRef.current && playerEffectCards.length > 0) {
+                  setTimeout(() => {
+                    if (playerEffectsRef.current) {
+                      const rect = playerEffectsRef.current.getBoundingClientRect();
+                      playAttackAnimation(rect.left + rect.width / 2, rect.top + rect.height / 2);
+                    }
+                  }, 100);
+                }
               } else if (card.rank === '7') {
                 addLog('player1', `${raceName}7で山札トップを確認`);
               }
@@ -1477,36 +1535,36 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
           const isDragHoverTarget = mode === 'dragging' && isDropTarget;
           
           return (
-            <div
-              key={`effect-${fc.card.rank}-${fc.card.race}-${i}`}
-              className={`cuttle-field-card-wrapper ${getSuitClass(fc.card)}`}
-              style={{ zIndex: i + 1, marginLeft: i === 0 ? 0 : margin }}
-            >
-              {/* カード本体 */}
+          <div
+            key={`effect-${fc.card.rank}-${fc.card.race}-${i}`}
+            className={`cuttle-field-card-wrapper ${getSuitClass(fc.card)}`}
+            style={{ zIndex: i + 1, marginLeft: i === 0 ? 0 : margin }}
+          >
+            {/* カード本体 */}
               <div className={`cuttle-field-card-full effect ${getSuitClass(fc.card)} ${isDragHoverTarget ? 'drag-hover-target' : ''}`}>
-                {/* カード背景 */}
-                <div className="card-parchment" />
-                
-                {/* 絵札イラスト（8, J, Q, K） */}
-                <div 
-                  className="card-face-art field"
-                  style={getFaceMaskStyle(fc.card.race, fc.card.rank)}
-                />
-                
-                {/* ランク表示 */}
-                <div className="card-rank top-left field">{fc.card.rank}</div>
-                <div className="card-rank bottom-right field">{fc.card.rank}</div>
-              </div>
+              {/* カード背景 */}
+              <div className="card-parchment" />
               
-              {/* 下部情報ボックス（カード外） */}
-              <div className="field-card-info">
-                <div 
-                  className="field-card-info-icon"
-                  style={getSuitMaskStyle(fc.card.race)}
-                />
-                <span className="field-card-info-rank">{fc.card.rank}</span>
-              </div>
+              {/* 絵札イラスト（8, J, Q, K） */}
+              <div 
+                className="card-face-art field"
+                style={getFaceMaskStyle(fc.card.race, fc.card.rank)}
+              />
+              
+              {/* ランク表示 */}
+              <div className="card-rank top-left field">{fc.card.rank}</div>
+              <div className="card-rank bottom-right field">{fc.card.rank}</div>
             </div>
+            
+            {/* 下部情報ボックス（カード外） */}
+            <div className="field-card-info">
+              <div 
+                className="field-card-info-icon"
+                style={getSuitMaskStyle(fc.card.race)}
+              />
+              <span className="field-card-info-rank">{fc.card.rank}</span>
+            </div>
+          </div>
           );
         })}
       </div>
@@ -1577,17 +1635,17 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
           const isRevealed = gameState.opponentHandRevealed.player2;
           
           // 公開中なら簡易版で表面を表示（アイコン+数字）
-                          if (isRevealed) {
-                            return (
-                              <div
-                                key={`enemy-hand-${card.id}`}
+          if (isRevealed) {
+            return (
+              <div
+                key={`enemy-hand-${card.id}`}
                                 className={`cuttle-enemy-card-revealed ${getSuitClass(card)}`}
-                                style={{
-                                  transform: `translateX(calc(-50% + ${xOffset}px)) translateY(${yOffset}px) rotate(${angle}deg)`,
-                                  zIndex: i + 1,
-                                }}
-                              >
-                                <div className="card-parchment" />
+                style={{
+                  transform: `translateX(calc(-50% + ${xOffset}px)) translateY(${yOffset}px) rotate(${angle}deg)`,
+                  zIndex: i + 1,
+                }}
+              >
+                <div className="card-parchment" />
                                 {/* 簡易版: 中央にアイコン */}
                                 <div 
                                   className="revealed-suit-icon"
@@ -1595,11 +1653,11 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
                                 />
                                 {/* ランク表示 */}
                                 <div className="revealed-rank">{card.rank}</div>
-                                {/* 公開中マーク */}
-                                <div className="revealed-mark">👁</div>
-                              </div>
-                            );
-                          }
+                {/* 公開中マーク */}
+                <div className="revealed-mark">👁</div>
+              </div>
+            );
+          }
           
           return (
             <div
@@ -1848,7 +1906,10 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
         <div className="cuttle-actions">
           <button
             className="cuttle-btn cuttle-btn-draw"
-            onClick={() => onAction('draw')}
+            onClick={() => {
+              playDrawAnimation('player');
+              onAction('draw');
+            }}
             disabled={isCPUTurn || gameState.deck.length === 0}
           >
             ドロー
