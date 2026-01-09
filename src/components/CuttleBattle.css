@@ -929,8 +929,6 @@
     background: linear-gradient(180deg, rgba(201, 162, 39, 0.1) 0%, rgba(201, 162, 39, 0.2) 100%);
     z-index: 50;
     overflow: visible; /* カードが上にはみ出すのを許可 */
-    transform: scale(0.9); /* 手札を0.9倍に縮小 */
-    transform-origin: bottom center;
     /* 手札エリアは他のエリアより上のレイヤー */
     /* タッチイベントは手札エリア内で完結させる */
 }
@@ -1492,11 +1490,11 @@
 /* ========== 手札カード（元サイズ） ========== */
 .cuttle-hand-card {
     position: absolute;
-    width: 64px;
+    width: 58px; /* 64px * 0.9 ≈ 58px */
     aspect-ratio: 5 / 7;
     background: transparent;
     border: 2px solid rgba(80, 60, 40, 0.8);
-    border-radius: 8px;
+    border-radius: 7px;
     cursor: pointer;
     transform-origin: bottom center;
     transform: translateX(calc(-50% + var(--x-offset))) translateY(var(--y-offset)) rotate(var(--angle));

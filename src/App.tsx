@@ -34,8 +34,19 @@ function App() {
     playerStartsFirst: true,
   });
 
+  // 初期ゲーム状態を作成（背景表示用にも使う）
+  const createDummyGameState = useCallback(() => {
+    const state = createInitialGameState(true);
+    state.player1.name = 'あなた';
+    state.player2.name = 'CPU';
+    return state;
+  }, []);
+  
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  
+  // 背景表示用のダミー状態（オーバーレイ画面で使用）
+  const backgroundGameState = gameState || createDummyGameState();
   
   // カード配り演出中かどうか
   const [isDealing, setIsDealing] = useState(false);
@@ -436,78 +447,78 @@ function App() {
     }) : null);
   }, []);
 
-  // 画面に応じた表示
-  if (screen === 'coinFlip') {
-    return (
-      <CoinFlip 
-        onComplete={handleCoinFlipComplete}
-        player1Wins={matchState.player1Wins}
-        player2Wins={matchState.player2Wins}
-        playerName="あなた"
-        enemyName="CPU"
-      />
-    );
-  }
+  const isPlayerWin = matchState.player1Wins >= 2;
+  
+  // 表示用のゲーム状態（オーバーレイ時はダミー状態を使用）
+  const displayGameState = backgroundGameState;
 
-  if (screen === 'roundStart') {
-    return (
-      <RoundStart
-        roundNumber={matchState.currentMatch}
-        player1Wins={matchState.player1Wins}
-        player2Wins={matchState.player2Wins}
-        playerName="あなた"
-        enemyName="CPU"
-        onComplete={handleRoundStartComplete}
-      />
-    );
-  }
-
-  if (screen === 'finalResult') {
-    const isPlayerWin = matchState.player1Wins >= 2;
-    return (
-      <div className="final-result-screen">
-        <div className="final-result-bg" />
-        <div className="final-result-content">
-          <div className={`final-result-title ${isPlayerWin ? 'win' : 'lose'}`}>
-            {isPlayerWin ? '勝利！' : '敗北...'}
-          </div>
-          <div className="final-result-score">
-            {matchState.player1Wins} - {matchState.player2Wins}
-          </div>
-          <button className="final-result-button" onClick={handleFullRestart}>
-            もう一度
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!gameState) {
-    return <div>Loading...</div>;
-  }
-
+  // 常にゲーム盤面を表示し、その上にオーバーレイを重ねる
   return (
-    <CuttleBattle
-      isOpen={true}
-      gameState={gameState}
-      onCardSelect={handleCardSelect}
-      onFieldCardSelect={handleFieldCardSelect}
-      onScrapSelect={handleScrapSelect}
-      onAction={handleAction}
-      onDirectAction={handleDirectAction}
-      onDiscard={handleDiscard}
-      onSevenOptionB={handleSevenOptionB}
-      onCancel={handleCancel}
-      isCPUTurn={gameState.currentPlayer === 'player2'}
-      matchInfo={{
-        currentMatch: matchState.currentMatch,
-        player1Wins: matchState.player1Wins,
-        player2Wins: matchState.player2Wins,
-      }}
-      isDealing={isDealing}
-      onDealingComplete={handleDealingComplete}
-      playerGoesFirst={matchState.playerStartsFirst}
-    />
+    <>
+      {/* 常に表示されるゲーム盤面 */}
+      <CuttleBattle
+        isOpen={true}
+        gameState={displayGameState}
+        onCardSelect={handleCardSelect}
+        onFieldCardSelect={handleFieldCardSelect}
+        onScrapSelect={handleScrapSelect}
+        onAction={handleAction}
+        onDirectAction={handleDirectAction}
+        onDiscard={handleDiscard}
+        onSevenOptionB={handleSevenOptionB}
+        onCancel={handleCancel}
+        isCPUTurn={displayGameState.currentPlayer === 'player2'}
+        matchInfo={{
+          currentMatch: matchState.currentMatch,
+          player1Wins: matchState.player1Wins,
+          player2Wins: matchState.player2Wins,
+        }}
+        isDealing={isDealing}
+        onDealingComplete={handleDealingComplete}
+        playerGoesFirst={matchState.playerStartsFirst}
+      />
+      
+      {/* オーバーレイ：コイントス */}
+      {screen === 'coinFlip' && (
+        <CoinFlip 
+          onComplete={handleCoinFlipComplete}
+          player1Wins={matchState.player1Wins}
+          player2Wins={matchState.player2Wins}
+          playerName="あなた"
+          enemyName="CPU"
+        />
+      )}
+      
+      {/* オーバーレイ：ラウンド開始 */}
+      {screen === 'roundStart' && (
+        <RoundStart
+          roundNumber={matchState.currentMatch}
+          player1Wins={matchState.player1Wins}
+          player2Wins={matchState.player2Wins}
+          playerName="あなた"
+          enemyName="CPU"
+          onComplete={handleRoundStartComplete}
+        />
+      )}
+      
+      {/* オーバーレイ：最終結果 */}
+      {screen === 'finalResult' && (
+        <div className="final-result-screen">
+          <div className="final-result-bg" />
+          <div className="final-result-content">
+            <div className={`final-result-title ${isPlayerWin ? 'win' : 'lose'}`}>
+              {isPlayerWin ? '勝利！' : '敗北...'}
+            </div>
+            <div className="final-result-score">
+              {matchState.player1Wins} - {matchState.player2Wins}
+            </div>
+            <button className="final-result-button" onClick={handleFullRestart}>
+              もう一度
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
