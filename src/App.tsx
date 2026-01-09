@@ -42,15 +42,10 @@ function App() {
 
   // 新しいゲームを開始
   const startNewGame = useCallback((playerFirst: boolean) => {
-    const state = createInitialGameState();
+    // 先攻後攻に応じて手札枚数が決まる（先攻5枚、後攻6枚）
+    const state = createInitialGameState(playerFirst);
     state.player1.name = 'あなた';
     state.player2.name = 'CPU';
-    
-    // 先攻後攻の設定
-    if (!playerFirst) {
-      state.currentPlayer = 'player2';
-      state.message = 'CPUのターン';
-    }
     
     // 新しいゲーム開始時にフラグをリセット
     gameOverProcessedRef.current = false;

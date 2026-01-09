@@ -122,22 +122,29 @@ function createPlayer(id: 'player1' | 'player2', name: string): Player {
   };
 }
 
-export function createInitialGameState(): GameState {
+export function createInitialGameState(playerGoesFirst: boolean = true): GameState {
   const deck = shuffleDeck(createDeck());
   
   const player1 = createPlayer('player1', 'プレイヤー1');
   const player2 = createPlayer('player2', 'プレイヤー2');
   
   // カードを配る（先攻5枚、後攻6枚）
-  player1.hand = deck.splice(0, 5);
-  player2.hand = deck.splice(0, 6);
+  if (playerGoesFirst) {
+    // プレイヤーが先攻: プレイヤー5枚、CPU6枚
+    player1.hand = deck.splice(0, 5);
+    player2.hand = deck.splice(0, 6);
+  } else {
+    // CPUが先攻: CPU5枚、プレイヤー6枚
+    player2.hand = deck.splice(0, 5);
+    player1.hand = deck.splice(0, 6);
+  }
   
   return {
     deck,
     scrapPile: [],
     player1,
     player2,
-    currentPlayer: 'player1',
+    currentPlayer: playerGoesFirst ? 'player1' : 'player2',
     phase: 'selectAction',
     winner: null,
     turnCount: 1,
@@ -145,7 +152,7 @@ export function createInitialGameState(): GameState {
     selectedCard: null,
     selectedAction: null,
     targetCard: null,
-    message: 'プレイヤー1のターン',
+    message: playerGoesFirst ? 'あなたのターン' : 'CPUのターン',
     opponentHandRevealed: { player1: false, player2: false },
   };
 }
