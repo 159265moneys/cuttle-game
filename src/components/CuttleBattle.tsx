@@ -649,73 +649,88 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
       }
     } else if (mode === 'dragging') {
       // ドロップターゲット判定
+      // 優先順位: 個別カード > エリア全体（個別カードが先に判定される）
       let newTarget: string | null = null;
+      let foundIndividualCard = false;
       
-      // 自分の点数エリア
-      if (playerPointsRef.current) {
-        const rect = playerPointsRef.current.getBoundingClientRect();
-        if (current.x >= rect.left && current.x <= rect.right &&
-            current.y >= rect.top && current.y <= rect.bottom) {
-          newTarget = 'playerPoints';
-        }
-      }
+      // ★ 個別カード判定を最優先 ★
       
-      // 自分の効果エリア
-      if (playerEffectsRef.current) {
-        const rect = playerEffectsRef.current.getBoundingClientRect();
-        if (current.x >= rect.left && current.x <= rect.right &&
-            current.y >= rect.top && current.y <= rect.bottom) {
-          newTarget = 'playerEffects';
-        }
-      }
-      
-      // 敵の点数エリア（アタック/Jターゲット）
-      if (enemyPointsRef.current) {
-        const rect = enemyPointsRef.current.getBoundingClientRect();
-        if (current.x >= rect.left && current.x <= rect.right &&
-            current.y >= rect.top && current.y <= rect.bottom) {
-          newTarget = 'enemyPoints';
-        }
-      }
-      
-      // 敵の効果エリア（2で永続破壊）
-      if (enemyEffectsRef.current) {
-        const rect = enemyEffectsRef.current.getBoundingClientRect();
-        if (current.x >= rect.left && current.x <= rect.right &&
-            current.y >= rect.top && current.y <= rect.bottom) {
-          newTarget = 'enemyEffects';
-        }
-      }
-      
-      // 敵の点数カード個別判定
-      const enemyPointCardElements = document.querySelectorAll('.cuttle-enemy-points-area .cuttle-field-card-wrapper');
-      enemyPointCardElements.forEach((card, i) => {
-        const rect = card.getBoundingClientRect();
-        if (current.x >= rect.left && current.x <= rect.right &&
-            current.y >= rect.top && current.y <= rect.bottom) {
-          newTarget = `enemyCard:${i}`;
-        }
-      });
-      
-      // 敵の効果カード個別判定
+      // 敵の効果カード個別判定（2で永続破壊用）- 最優先
       const enemyEffectCardElements = document.querySelectorAll('.cuttle-enemy-effects .cuttle-field-card-wrapper');
       enemyEffectCardElements.forEach((card, i) => {
         const rect = card.getBoundingClientRect();
+        // ヒット判定を少し緩くする（上下に10pxの余裕）
         if (current.x >= rect.left && current.x <= rect.right &&
-            current.y >= rect.top && current.y <= rect.bottom) {
+            current.y >= rect.top - 10 && current.y <= rect.bottom + 10) {
           newTarget = `enemyEffect:${i}`;
+          foundIndividualCard = true;
         }
       });
       
+      // 敵の点数カード個別判定
+      if (!foundIndividualCard) {
+        const enemyPointCardElements = document.querySelectorAll('.cuttle-enemy-points-area .cuttle-field-card-wrapper');
+        enemyPointCardElements.forEach((card, i) => {
+          const rect = card.getBoundingClientRect();
+          if (current.x >= rect.left && current.x <= rect.right &&
+              current.y >= rect.top && current.y <= rect.bottom) {
+            newTarget = `enemyCard:${i}`;
+            foundIndividualCard = true;
+          }
+        });
+      }
+      
       // 自分の点数カード個別判定（敵に支配されているカードへのJ使用用）
-      const playerPointCardElements = document.querySelectorAll('.cuttle-player-points-area .cuttle-field-card-wrapper');
-      playerPointCardElements.forEach((card, i) => {
-        const rect = card.getBoundingClientRect();
-        if (current.x >= rect.left && current.x <= rect.right &&
-            current.y >= rect.top && current.y <= rect.bottom) {
-          newTarget = `playerCard:${i}`;
+      if (!foundIndividualCard) {
+        const playerPointCardElements = document.querySelectorAll('.cuttle-player-points-area .cuttle-field-card-wrapper');
+        playerPointCardElements.forEach((card, i) => {
+          const rect = card.getBoundingClientRect();
+          if (current.x >= rect.left && current.x <= rect.right &&
+              current.y >= rect.top && current.y <= rect.bottom) {
+            newTarget = `playerCard:${i}`;
+            foundIndividualCard = true;
+          }
+        });
+      }
+      
+      // ★ 個別カードが見つからなかった場合のみエリア判定 ★
+      if (!foundIndividualCard) {
+        // 敵の効果エリア（2で永続破壊）- 点数エリアより先に判定
+        if (enemyEffectsRef.current) {
+          const rect = enemyEffectsRef.current.getBoundingClientRect();
+          if (current.x >= rect.left && current.x <= rect.right &&
+              current.y >= rect.top && current.y <= rect.bottom) {
+            newTarget = 'enemyEffects';
+          }
         }
-      });
+        
+        // 敵の点数エリア（アタック/Jターゲット）
+        if (!newTarget && enemyPointsRef.current) {
+          const rect = enemyPointsRef.current.getBoundingClientRect();
+          if (current.x >= rect.left && current.x <= rect.right &&
+              current.y >= rect.top && current.y <= rect.bottom) {
+            newTarget = 'enemyPoints';
+          }
+        }
+        
+        // 自分の点数エリア
+        if (!newTarget && playerPointsRef.current) {
+          const rect = playerPointsRef.current.getBoundingClientRect();
+          if (current.x >= rect.left && current.x <= rect.right &&
+              current.y >= rect.top && current.y <= rect.bottom) {
+            newTarget = 'playerPoints';
+          }
+        }
+        
+        // 自分の効果エリア
+        if (!newTarget && playerEffectsRef.current) {
+          const rect = playerEffectsRef.current.getBoundingClientRect();
+          if (current.x >= rect.left && current.x <= rect.right &&
+              current.y >= rect.top && current.y <= rect.bottom) {
+            newTarget = 'playerEffects';
+          }
+        }
+      }
       
       setDropTarget(newTarget);
     }
