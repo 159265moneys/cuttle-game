@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import type { GameState, Card as CardType, FieldCard, ActionType } from './types/game';
 import { createInitialGameState, drawCard, pass, hasQueen, getOpponent } from './utils/gameLogic';
 import { 
@@ -19,11 +19,11 @@ interface MatchState {
   player1Wins: number;
   player2Wins: number;
   currentMatch: number;
-  playerStartsFirst: boolean; // プレイヤーが先攻かどうか
+  playerStartsFirst: boolean;
 }
 
 function App() {
-  // ゲーム画面の状態
+  // 画面状態
   const [screen, setScreen] = useState<'coinFlip' | 'roundStart' | 'battle' | 'finalResult'>('coinFlip');
   
   // マッチ状態
@@ -34,41 +34,45 @@ function App() {
     playerStartsFirst: true,
   });
 
-  // 初期ゲーム状態を作成（背景表示用にも使う）
-  const createDummyGameState = useCallback(() => {
-    const state = createInitialGameState(true);
-    state.player1.name = 'あなた';
-    state.player2.name = 'CPU';
-    return state;
-  }, []);
-  
+  // ゲーム状態（バトル中のみ有効）
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   
-  // 背景表示用のダミー状態（オーバーレイ画面で使用）
-  const backgroundGameState = gameState || createDummyGameState();
-  
-  // カード配り演出中かどうか
+  // カード配り演出中
   const [isDealing, setIsDealing] = useState(false);
   
-  // ゲームオーバー処理済みフラグ（重複実行を防止）
+  // ゲームオーバー処理済みフラグ
   const gameOverProcessedRef = useRef(false);
+  
+  // 前のゲーム終了時の盤面（次のラウンド開始画面の背景用）
+  const [frozenGameState, setFrozenGameState] = useState<GameState | null>(null);
 
-  // 新しいゲームを開始
+  // 空の盤面を作成（コイントス/ラウンド開始時の背景用）
+  const createEmptyBattleState = useCallback((): GameState => {
+    const state = createInitialGameState(true);
+    state.player1.name = 'あなた';
+    state.player2.name = 'CPU';
+    // 手札を空に（まだ配られていない状態）
+    state.player1.hand = [];
+    state.player2.hand = [];
+    return state;
+  }, []);
+
+  // 新しいゲームを開始（ラウンド開始完了後に呼ばれる）
   const startNewGame = useCallback((playerFirst: boolean) => {
-    // 先攻後攻に応じて手札枚数が決まる（先攻5枚、後攻6枚）
     const state = createInitialGameState(playerFirst);
     state.player1.name = 'あなた';
     state.player2.name = 'CPU';
     
-    // 新しいゲーム開始時にフラグをリセット
     gameOverProcessedRef.current = false;
-    
-    // カード配り演出を開始
-    setIsDealing(true);
-    
+    setFrozenGameState(null);
     setGameState(state);
     setScreen('battle');
+    
+    // 少し遅延してからカード配り演出を開始（画面切り替え後）
+    setTimeout(() => {
+      setIsDealing(true);
+    }, 100);
   }, []);
   
   // カード配り演出完了
@@ -76,7 +80,7 @@ function App() {
     setIsDealing(false);
   }, []);
 
-  // コイントス完了 → ROUND 1 START演出へ
+  // コイントス完了 → ラウンド開始画面へ
   const handleCoinFlipComplete = useCallback((playerGoesFirst: boolean) => {
     setMatchState(prev => ({
       ...prev,
@@ -85,29 +89,29 @@ function App() {
     setScreen('roundStart');
   }, []);
 
-  // ROUND START演出完了 → バトル開始
+  // ラウンド開始完了 → ゲーム開始
   const handleRoundStartComplete = useCallback(() => {
     startNewGame(matchState.playerStartsFirst);
   }, [startNewGame, matchState.playerStartsFirst]);
 
-  // ゲーム終了時の処理 → 2秒後に自動で次へ
+  // ゲーム終了時の処理
   useEffect(() => {
-    // 既に処理済みの場合は何もしない（重複実行防止）
     if (gameOverProcessedRef.current) return;
     
     if (gameState?.phase === 'gameOver' && gameState.winner) {
-      // 処理済みフラグを立てる
       gameOverProcessedRef.current = true;
       
       const isPlayerWin = gameState.winner === 'player1';
       
-      // 2秒後に結果処理と自動遷移
+      // 現在の盤面をフリーズ（次のラウンド開始画面の背景用）
+      setFrozenGameState(gameState);
+      
+      // 2秒後に結果処理
       const timer = setTimeout(() => {
         setMatchState(prev => {
           const newPlayer1Wins = prev.player1Wins + (isPlayerWin ? 1 : 0);
           const newPlayer2Wins = prev.player2Wins + (isPlayerWin ? 0 : 1);
           
-          // 2勝したら最終結果
           if (newPlayer1Wins >= 2 || newPlayer2Wins >= 2) {
             setScreen('finalResult');
             return {
@@ -116,14 +120,13 @@ function App() {
               player2Wins: newPlayer2Wins,
             };
           } else {
-            // 次のラウンドへ自動遷移
             setScreen('roundStart');
             return {
               ...prev,
               player1Wins: newPlayer1Wins,
               player2Wins: newPlayer2Wins,
               currentMatch: prev.currentMatch + 1,
-              playerStartsFirst: !prev.playerStartsFirst, // 先攻後攻を交代
+              playerStartsFirst: !prev.playerStartsFirst,
             };
           }
         });
@@ -133,11 +136,10 @@ function App() {
     }
   }, [gameState?.phase, gameState?.winner]);
 
-  // 全体リスタート（最初から）
+  // 全体リスタート
   const handleFullRestart = useCallback(() => {
-    // フラグをリセット
     gameOverProcessedRef.current = false;
-    
+    setFrozenGameState(null);
     setMatchState({
       player1Wins: 0,
       player2Wins: 0,
@@ -147,6 +149,7 @@ function App() {
     setGameState(null);
     setScreen('coinFlip');
     setIsProcessing(false);
+    setIsDealing(false);
   }, []);
 
   // CPUのターンを処理
@@ -156,7 +159,8 @@ function App() {
       gameState.currentPlayer === 'player2' && 
       gameState.phase !== 'gameOver' &&
       gameState.phase !== 'opponentDiscard' &&
-      !isProcessing
+      !isProcessing &&
+      !isDealing
     ) {
       setIsProcessing(true);
       
@@ -209,9 +213,9 @@ function App() {
         setIsProcessing(false);
       }, delay);
     }
-  }, [gameState, isProcessing]);
+  }, [gameState, isProcessing, isDealing]);
 
-  // 4の効果で自動的にCPUが手札を捨てる（プレイヤーが4を使った場合）
+  // 4の効果でCPUが手札を捨てる
   useEffect(() => {
     if (
       gameState &&
@@ -236,25 +240,23 @@ function App() {
     }
   }, [gameState]);
   
-  // プレイヤーが手札を捨てる（CPUが4を使った場合）
+  // プレイヤーが手札を捨てる
   const handleDiscard = useCallback((cards: CardType[]) => {
     if (!gameState || gameState.phase !== 'opponentDiscard' || gameState.currentPlayer !== 'player2') return;
     setGameState(discardCards(gameState, cards));
   }, [gameState]);
 
-  // 7のオプションB: 山札に戻して手札からプレイ
+  // 7のオプションB
   const handleSevenOptionB = useCallback(() => {
     if (!gameState || gameState.phase !== 'sevenChoice' || !gameState.sevenChoices) return;
     
-    // sevenChoices のカードを山札の一番下に戻す
     const newDeck = [...gameState.deck.filter(c => !gameState.sevenChoices!.some(sc => sc.id === c.id))];
-    // 山札の一番下に追加
     newDeck.push(...gameState.sevenChoices);
     
     setGameState(prev => prev ? ({
       ...prev,
       deck: newDeck,
-      phase: 'sevenOptionB', // 特殊フェーズ: 手札からプレイ
+      phase: 'sevenOptionB',
       sevenChoices: undefined,
       message: '手札から1枚プレイしてください',
     }) : null);
@@ -264,12 +266,9 @@ function App() {
   const handleCardSelect = useCallback((card: CardType) => {
     if (!gameState || gameState.currentPlayer === 'player2' || isProcessing) return;
 
-    // 7の効果: 山札トップから選択した場合（オプションA）
     if (gameState.phase === 'sevenChoice' && gameState.sevenChoices) {
-      // 選択したカードが sevenChoices にあるか確認
       const isSevenChoice = gameState.sevenChoices.some(c => c.id === card.id);
       if (isSevenChoice) {
-        // 選択したカードをデッキから除去してプレイヤーの手札に加える
         const newDeck = gameState.deck.filter(c => c.id !== card.id);
         const player = gameState[gameState.currentPlayer];
         
@@ -297,7 +296,7 @@ function App() {
     }) : null);
   }, [gameState, isProcessing]);
 
-  // フィールドカード選択（ターゲット選択）
+  // フィールドカード選択
   const handleFieldCardSelect = useCallback((fieldCard: FieldCard) => {
     if (!gameState || gameState.phase !== 'selectTarget' || !gameState.selectedCard) return;
     if (gameState.currentPlayer === 'player2' || isProcessing) return;
@@ -319,7 +318,7 @@ function App() {
     }
   }, [gameState, isProcessing]);
 
-  // 捨て札選択（3の効果）
+  // 捨て札選択
   const handleScrapSelect = useCallback((card: CardType) => {
     if (!gameState || gameState.currentPlayer === 'player2' || isProcessing) return;
     if (gameState.selectedCard?.rank === '3') {
@@ -327,14 +326,12 @@ function App() {
     }
   }, [gameState, isProcessing]);
 
-  // 直接アクション実行（カードとターゲットを直接渡す - 状態のクロージャ問題を回避）
+  // 直接アクション
   const handleDirectAction = useCallback((action: ActionType, card: CardType, target?: FieldCard) => {
     if (!gameState || gameState.currentPlayer === 'player2' || isProcessing) return;
 
     switch (action) {
       case 'playKnight':
-        // playKnight内で正しくhasQueenチェックを行うのでここでは省略
-        // （自分の奪われたカードを取り返す場合はQがあっても可能）
         if (target && target.card.value > 0) {
           setGameState(playKnight(gameState, card, target));
         }
@@ -449,39 +446,51 @@ function App() {
 
   const isPlayerWin = matchState.player1Wins >= 2;
   
-  // 表示用のゲーム状態
-  // - バトル中は実際のgameStateを使用
-  // - オーバーレイ画面ではダミー状態を背景として使用
-  const displayGameState = (screen === 'battle' && gameState) ? gameState : backgroundGameState;
-  const isOverlayScreen = screen !== 'battle';
+  // 表示用のゲーム状態を計算
+  // - バトル中: 実際のgameState
+  // - オーバーレイ中: フリーズした状態 or 空の盤面
+  const displayGameState = useMemo(() => {
+    if (screen === 'battle' && gameState) {
+      return gameState;
+    }
+    // オーバーレイ中
+    if (frozenGameState) {
+      return frozenGameState;
+    }
+    return createEmptyBattleState();
+  }, [screen, gameState, frozenGameState, createEmptyBattleState]);
+  
+  // オーバーレイ表示中か
+  const isOverlay = screen !== 'battle';
 
-  // 常にゲーム盤面を表示し、その上にオーバーレイを重ねる
   return (
     <>
-      {/* 常に表示されるゲーム盤面 */}
-      <CuttleBattle
-        isOpen={true}
-        gameState={displayGameState}
-        onCardSelect={handleCardSelect}
-        onFieldCardSelect={handleFieldCardSelect}
-        onScrapSelect={handleScrapSelect}
-        onAction={handleAction}
-        onDirectAction={handleDirectAction}
-        onDiscard={handleDiscard}
-        onSevenOptionB={handleSevenOptionB}
-        onCancel={handleCancel}
-        isCPUTurn={displayGameState.currentPlayer === 'player2'}
-        matchInfo={{
-          currentMatch: matchState.currentMatch,
-          player1Wins: matchState.player1Wins,
-          player2Wins: matchState.player2Wins,
-        }}
-        isDealing={!isOverlayScreen && isDealing}
-        onDealingComplete={handleDealingComplete}
-        playerGoesFirst={matchState.playerStartsFirst}
-      />
+      {/* レイヤー1: ゲーム盤面（常に表示、オーバーレイ中はフリーズ） */}
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <CuttleBattle
+          isOpen={true}
+          gameState={displayGameState}
+          onCardSelect={handleCardSelect}
+          onFieldCardSelect={handleFieldCardSelect}
+          onScrapSelect={handleScrapSelect}
+          onAction={handleAction}
+          onDirectAction={handleDirectAction}
+          onDiscard={handleDiscard}
+          onSevenOptionB={handleSevenOptionB}
+          onCancel={handleCancel}
+          isCPUTurn={displayGameState.currentPlayer === 'player2'}
+          matchInfo={{
+            currentMatch: matchState.currentMatch,
+            player1Wins: matchState.player1Wins,
+            player2Wins: matchState.player2Wins,
+          }}
+          isDealing={!isOverlay && isDealing}
+          onDealingComplete={handleDealingComplete}
+          playerGoesFirst={matchState.playerStartsFirst}
+        />
+      </div>
       
-      {/* オーバーレイ：コイントス */}
+      {/* レイヤー2: オーバーレイ画面 */}
       {screen === 'coinFlip' && (
         <CoinFlip 
           onComplete={handleCoinFlipComplete}
@@ -492,7 +501,6 @@ function App() {
         />
       )}
       
-      {/* オーバーレイ：ラウンド開始 */}
       {screen === 'roundStart' && (
         <RoundStart
           roundNumber={matchState.currentMatch}
@@ -504,7 +512,6 @@ function App() {
         />
       )}
       
-      {/* オーバーレイ：最終結果 */}
       {screen === 'finalResult' && (
         <div className="final-result-screen">
           <div className="final-result-bg" />
