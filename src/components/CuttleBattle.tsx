@@ -251,9 +251,13 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
     endX: number;
     endY: number;
     rotation: number;
+    target: 'player' | 'enemy';
   }
   const [dealingCards, setDealingCards] = useState<DealingCard[]>([]);
   const deckRef = useRef<HTMLDivElement>(null);
+  
+  // 配られたカード数を追跡（配り演出中に手札を段階的に表示するため）
+  const [dealtCounts, setDealtCounts] = useState({ player: 0, enemy: 0 });
   
   // 攻撃/破壊演出用
   const [attackFlash, setAttackFlash] = useState(false);
@@ -280,8 +284,8 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   const player = gameState.player1;
   const enemy = gameState.player2;
   
-  // ポイント獲得パーティクル生成（修正版：正確な座標でアイコンへ飛ばす）
-  const spawnPointParticles = useCallback((target: 'player' | 'enemy', startX: number, startY: number) => {
+  // ポイント獲得パーティクル生成（修正版：正確な座標でアイコンへ飛ばす、カード値に応じた数）
+  const spawnPointParticles = useCallback((target: 'player' | 'enemy', startX: number, startY: number, cardValue: number = 5) => {
     const iconRef = target === 'player' ? playerIconRef : enemyIconRef;
     if (!iconRef.current) return;
     
@@ -289,8 +293,11 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
     const endX = iconRect.left + iconRect.width / 2;
     const endY = iconRect.top + iconRect.height / 2;
     
+    // パーティクル数 = カードの数字（最小3、最大12）
+    const particleCount = Math.max(3, Math.min(12, cardValue + 2));
+    
     const newParticles: PointParticle[] = [];
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < particleCount; i++) {
       particleIdRef.current += 1;
       newParticles.push({
         id: particleIdRef.current,
@@ -349,6 +356,9 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   useEffect(() => {
     if (!isDealing || !deckRef.current) return;
     
+    // 配り始めは両方0枚
+    setDealtCounts({ player: 0, enemy: 0 });
+    
     const deckRect = deckRef.current.getBoundingClientRect();
     const startX = deckRect.left + deckRect.width / 2;
     const startY = deckRect.top + deckRect.height / 2;
@@ -362,63 +372,89 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
     // プレイヤー手札エリア（下部）
     const playerHandY = screenHeight - 100;
     
-    // 後攻（6枚）から先に配る
-    const secondPlayerCards = 6;
-    const firstPlayerCards = 5;
+    // 後攻（6枚）、先攻（5枚）
+    // プレイヤーが先攻なら: player=5, enemy=6
+    // プレイヤーが後攻なら: player=6, enemy=5
+    const playerCardCount = playerGoesFirst ? 5 : 6;
+    const enemyCardCount = playerGoesFirst ? 6 : 5;
     
-    // プレイヤーが先攻なら敵が後攻（6枚）なので敵から配る
-    const enemyIsSecond = playerGoesFirst;
+    // 交互に配る: 後攻（6枚持ち）から先に1枚、次に先攻に1枚...
+    // 合計11枚を交互に配る
+    const dealingSequence: Array<{target: 'player' | 'enemy'; cardIndex: number}> = [];
+    let pIdx = 0;
+    let eIdx = 0;
     
-    const newDealingCards: DealingCard[] = [];
-    let cardId = 0;
+    // 後攻から先に配る
+    const secondPlayer: 'player' | 'enemy' = playerGoesFirst ? 'enemy' : 'player';
+    const firstPlayer: 'player' | 'enemy' = playerGoesFirst ? 'player' : 'enemy';
     
-    // 1枚目のプレイヤー（後攻、6枚）
-    const firstTarget = enemyIsSecond ? 'enemy' : 'player';
-    for (let i = 0; i < secondPlayerCards; i++) {
-      const endX = screenWidth / 2 + (i - secondPlayerCards / 2) * 30 - startX;
-      const endY = (firstTarget === 'enemy' ? enemyHandY : playerHandY) - startY;
-      newDealingCards.push({
-        id: cardId++,
+    // 交互に配る（後攻が1枚多いので最後は後攻）
+    for (let i = 0; i < 11; i++) {
+      if (i % 2 === 0) {
+        // 偶数回目: 後攻（6枚持ち）
+        if (secondPlayer === 'player') {
+          dealingSequence.push({ target: 'player', cardIndex: pIdx++ });
+        } else {
+          dealingSequence.push({ target: 'enemy', cardIndex: eIdx++ });
+        }
+      } else {
+        // 奇数回目: 先攻（5枚持ち）
+        if (firstPlayer === 'player') {
+          if (pIdx < playerCardCount) {
+            dealingSequence.push({ target: 'player', cardIndex: pIdx++ });
+          }
+        } else {
+          if (eIdx < enemyCardCount) {
+            dealingSequence.push({ target: 'enemy', cardIndex: eIdx++ });
+          }
+        }
+      }
+    }
+    
+    const newDealingCards: DealingCard[] = dealingSequence.map((item, i) => {
+      const isPlayer = item.target === 'player';
+      const totalForTarget = isPlayer ? playerCardCount : enemyCardCount;
+      const endX = screenWidth / 2 + (item.cardIndex - totalForTarget / 2) * 30 - startX;
+      const endY = (isPlayer ? playerHandY : enemyHandY) - startY;
+      
+      return {
+        id: i,
         startX,
         startY,
         endX,
         endY,
         rotation: (Math.random() - 0.5) * 10,
-      });
-    }
+        target: item.target,
+      };
+    });
     
-    // 2枚目のプレイヤー（先攻、5枚）
-    const secondTarget = enemyIsSecond ? 'player' : 'enemy';
-    for (let i = 0; i < firstPlayerCards; i++) {
-      const endX = screenWidth / 2 + (i - firstPlayerCards / 2) * 30 - startX;
-      const endY = (secondTarget === 'enemy' ? enemyHandY : playerHandY) - startY;
-      newDealingCards.push({
-        id: cardId++,
-        startX,
-        startY,
-        endX,
-        endY,
-        rotation: (Math.random() - 0.5) * 10,
-      });
-    }
-    
-    // 順番にアニメーション開始
+    // 順番にアニメーション開始（150msごと = ゆっくり）
+    const timers: ReturnType<typeof setTimeout>[] = [];
     newDealingCards.forEach((card, index) => {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         setDealingCards(prev => [...prev, card]);
-      }, index * 80); // 80msごとに1枚ずつ
+        // カードが配られたら、そのプレイヤーの手札表示数を増やす
+        setDealtCounts(prev => ({
+          ...prev,
+          [card.target]: prev[card.target] + 1,
+        }));
+      }, index * 150); // 150msごとに1枚ずつ
+      timers.push(timer);
     });
     
     // 全て配り終わったら完了を通知
-    const totalCards = secondPlayerCards + firstPlayerCards;
-    const totalDuration = totalCards * 80 + 400; // 最後のカードのアニメーション時間も考慮
+    const totalCards = 11;
+    const totalDuration = totalCards * 150 + 500; // 最後のカードのアニメーション時間も考慮
     
-    const timer = setTimeout(() => {
+    const completionTimer = setTimeout(() => {
       setDealingCards([]);
       onDealingComplete?.();
     }, totalDuration);
     
-    return () => clearTimeout(timer);
+    return () => {
+      timers.forEach(t => clearTimeout(t));
+      clearTimeout(completionTimer);
+    };
   }, [isDealing, playerGoesFirst, onDealingComplete]);
   
   // HPリングのSVGパスを生成（連続した円弧、上から時計回り）
@@ -548,6 +584,11 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
           addLog('player2', `${raceName}${newCard.card.rank}の永続効果を発動`);
         } else {
           addLog('player2', `${raceName}${newCard.card.rank}を場にセット`);
+          // 敵がポイントカードを出したらパーティクルエフェクト
+          if (newCard.card.value > 0 && enemyPointsRef.current) {
+            const rect = enemyPointsRef.current.getBoundingClientRect();
+            spawnPointParticles('enemy', rect.left + rect.width / 2, rect.top + rect.height / 2, newCard.card.value);
+          }
         }
       }
     }
@@ -609,7 +650,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
     prevDeckRef.current = gameState.deck.length;
     prevScrapRef.current = gameState.scrapPile.length;
     prevCurrentPlayerRef.current = gameState.currentPlayer;
-  }, [gameState, player.field, enemy.field, player.hand, enemy.hand, addLog]);
+  }, [gameState, player.field, enemy.field, player.hand, enemy.hand, addLog, spawnPointParticles]);
   
   // 3の効果: 捨て札選択フェーズで自動的にモーダルを開く
   useEffect(() => {
@@ -950,8 +991,8 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
             onCardSelect(card); // カードを選択状態にしてから
             onAction('playPoint');
             addLog('player1', `${raceName}${card.rank}を場にセット`);
-            // ポイント獲得パーティクルエフェクト（ドロップ位置からアイコンへ）
-            spawnPointParticles('player', touchCurrent.x, touchCurrent.y);
+            // ポイント獲得パーティクルエフェクト（ドロップ位置からアイコンへ、カード値に応じた数）
+            spawnPointParticles('player', touchCurrent.x, touchCurrent.y, card.value);
           }
         } else if (dropTarget === 'playerEffects') {
           // 効果として出す
@@ -1388,7 +1429,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   };
   
   // 効果カードをレンダリング（フルデザイン）
-  const renderEffectCards = (cards: FieldCard[]) => {
+  const renderEffectCards = (cards: FieldCard[], isEnemy: boolean = false) => {
     const permanents = cards.filter(fc => isFieldPermanent(fc));
     
     if (permanents.length === 0) {
@@ -1399,38 +1440,44 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
     
     return (
       <div className="cuttle-effect-cards-full">
-        {permanents.map((fc, i) => (
-          <div
-            key={`effect-${fc.card.rank}-${fc.card.race}-${i}`}
-            className={`cuttle-field-card-wrapper ${getSuitClass(fc.card)}`}
-            style={{ zIndex: i + 1, marginLeft: i === 0 ? 0 : margin }}
-          >
-            {/* カード本体 */}
-            <div className={`cuttle-field-card-full effect ${getSuitClass(fc.card)}`}>
-              {/* カード背景 */}
-              <div className="card-parchment" />
+        {permanents.map((fc, i) => {
+          // ドラッグ中のホバーハイライト（敵の効果カードのみ）
+          const isDropTarget = isEnemy && dropTarget === `enemyEffect:${i}`;
+          const isDragHoverTarget = mode === 'dragging' && isDropTarget;
+          
+          return (
+            <div
+              key={`effect-${fc.card.rank}-${fc.card.race}-${i}`}
+              className={`cuttle-field-card-wrapper ${getSuitClass(fc.card)}`}
+              style={{ zIndex: i + 1, marginLeft: i === 0 ? 0 : margin }}
+            >
+              {/* カード本体 */}
+              <div className={`cuttle-field-card-full effect ${getSuitClass(fc.card)} ${isDragHoverTarget ? 'drag-hover-target' : ''}`}>
+                {/* カード背景 */}
+                <div className="card-parchment" />
+                
+                {/* 絵札イラスト（8, J, Q, K） */}
+                <div 
+                  className="card-face-art field"
+                  style={getFaceMaskStyle(fc.card.race, fc.card.rank)}
+                />
+                
+                {/* ランク表示 */}
+                <div className="card-rank top-left field">{fc.card.rank}</div>
+                <div className="card-rank bottom-right field">{fc.card.rank}</div>
+              </div>
               
-              {/* 絵札イラスト（8, J, Q, K） */}
-              <div 
-                className="card-face-art field"
-                style={getFaceMaskStyle(fc.card.race, fc.card.rank)}
-              />
-              
-              {/* ランク表示 */}
-              <div className="card-rank top-left field">{fc.card.rank}</div>
-              <div className="card-rank bottom-right field">{fc.card.rank}</div>
+              {/* 下部情報ボックス（カード外） */}
+              <div className="field-card-info">
+                <div 
+                  className="field-card-info-icon"
+                  style={getSuitMaskStyle(fc.card.race)}
+                />
+                <span className="field-card-info-rank">{fc.card.rank}</span>
+              </div>
             </div>
-            
-            {/* 下部情報ボックス（カード外） */}
-            <div className="field-card-info">
-              <div 
-                className="field-card-info-icon"
-                style={getSuitMaskStyle(fc.card.race)}
-              />
-              <span className="field-card-info-rank">{fc.card.rank}</span>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     );
   };
@@ -1471,8 +1518,8 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
       
       {/* 敵手札（扇状 - 逆向き：敵なので上に開く） */}
       <div className="cuttle-enemy-hand">
-        {enemy.hand.map((card, i) => {
-          const count = enemy.hand.length;
+        {(isDealing ? enemy.hand.slice(0, dealtCounts.enemy) : enemy.hand).map((card, i) => {
+          const count = isDealing ? dealtCounts.enemy : enemy.hand.length;
           const maxAngle = 12;
           const maxSpacing = 40;
           const minSpacing = 22;
@@ -1571,7 +1618,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
         ref={enemyEffectsRef}
         className={`cuttle-enemy-effects ${dropTarget === 'enemyEffects' ? 'drop-highlight' : ''}`}
       >
-        {renderEffectCards(enemyEffectCards)}
+        {renderEffectCards(enemyEffectCards, true)}
       </div>
       
       {/* 敵 点数エリア */}
@@ -1779,9 +1826,12 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
         </div>
       </div>
       
-      {/* 手札 */}
+      {/* 手札（配り中は配られた分だけ表示） */}
       <div className="cuttle-hand">
-        {player.hand.map(renderHandCard)}
+        {isDealing
+          ? player.hand.slice(0, dealtCounts.player).map(renderHandCard)
+          : player.hand.map(renderHandCard)
+        }
       </div>
       
       {/* 下部余白 */}

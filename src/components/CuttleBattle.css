@@ -1244,7 +1244,7 @@
             #252018 70%,    /* 下部やや暗い */
             #1a1510 100%    /* 最下部 */
         );
-    opacity: 0.95;
+    /* opacity: 0.95; - 透けないようにする */
     z-index: 0;
 }
 
@@ -2523,48 +2523,68 @@
 /* プレイヤーの点数カードがQで保護されている時 */
 .cuttle-field-card-full.queen-protected.player-protected {
     box-shadow: 
-        inset 0 0 20px rgba(94, 211, 243, 0.35),
-        0 0 12px rgba(94, 211, 243, 0.4),
+        inset 0 0 30px rgba(94, 211, 243, 0.5),
+        0 0 20px rgba(94, 211, 243, 0.6),
+        0 0 40px rgba(94, 211, 243, 0.3),
         0 2px 6px rgba(0, 0, 0, 0.5) !important;
+    border-color: rgba(94, 211, 243, 0.8) !important;
 }
 
 .cuttle-field-card-full.queen-protected.player-protected::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: radial-gradient(ellipse at center, rgba(94, 211, 243, 0.15) 0%, transparent 70%);
+    background: 
+        radial-gradient(ellipse at center, rgba(94, 211, 243, 0.25) 0%, transparent 60%),
+        linear-gradient(180deg, rgba(94, 211, 243, 0.15) 0%, transparent 30%);
     border-radius: 4px;
     pointer-events: none;
     z-index: 5;
+    animation: protection-pulse-player 2s ease-in-out infinite;
+}
+
+@keyframes protection-pulse-player {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
 }
 
 /* 敵の点数カードがQで保護されている時 */
 .cuttle-field-card-full.queen-protected.enemy-protected {
     box-shadow: 
-        inset 0 0 20px rgba(243, 94, 94, 0.35),
-        0 0 12px rgba(243, 94, 94, 0.4),
+        inset 0 0 30px rgba(243, 94, 94, 0.5),
+        0 0 20px rgba(243, 94, 94, 0.6),
+        0 0 40px rgba(243, 94, 94, 0.3),
         0 2px 6px rgba(0, 0, 0, 0.5) !important;
+    border-color: rgba(243, 94, 94, 0.8) !important;
 }
 
 .cuttle-field-card-full.queen-protected.enemy-protected::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: radial-gradient(ellipse at center, rgba(243, 94, 94, 0.15) 0%, transparent 70%);
+    background: 
+        radial-gradient(ellipse at center, rgba(243, 94, 94, 0.25) 0%, transparent 60%),
+        linear-gradient(180deg, rgba(243, 94, 94, 0.15) 0%, transparent 30%);
     border-radius: 4px;
     pointer-events: none;
     z-index: 5;
+    animation: protection-pulse-enemy 2s ease-in-out infinite;
+}
+
+@keyframes protection-pulse-enemy {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
 }
 
 /* ========== ドラッグ中のターゲットハイライト ========== */
 .cuttle-field-card-full.drag-hover-target {
     box-shadow: 
-        0 0 20px rgba(94, 211, 243, 0.8),
-        0 0 40px rgba(94, 211, 243, 0.5),
-        inset 0 0 10px rgba(94, 211, 243, 0.3) !important;
+        0 0 25px rgba(94, 211, 243, 0.9),
+        0 0 50px rgba(94, 211, 243, 0.6),
+        inset 0 0 15px rgba(94, 211, 243, 0.4) !important;
     border-color: #5ed3f3 !important;
-    transform: translateY(-5px) scale(1.05);
-    transition: all 0.15s ease-out;
+    border-width: 3px !important;
+    /* transform削除 - 動かないようにする */
 }
 
 /* ========== カード配り演出 ========== */
