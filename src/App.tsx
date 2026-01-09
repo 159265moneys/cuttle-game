@@ -66,13 +66,11 @@ function App() {
     
     gameOverProcessedRef.current = false;
     setFrozenGameState(null);
+    
+    // 先にisDealingをtrueにしてCPUの行動をブロック
+    setIsDealing(true);
     setGameState(state);
     setScreen('battle');
-    
-    // 少し遅延してからカード配り演出を開始（画面切り替え後）
-    setTimeout(() => {
-      setIsDealing(true);
-    }, 100);
   }, []);
   
   // カード配り演出完了
