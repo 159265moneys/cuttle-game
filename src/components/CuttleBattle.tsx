@@ -1534,6 +1534,10 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
           const isDropTarget = isEnemy && dropTarget === `enemyEffect:${i}`;
           const isDragHoverTarget = mode === 'dragging' && isDropTarget;
           
+          // 8は数字カードなのでpipを表示（A, J, Q, Kは絵札アート）
+          const showFaceArt = isFaceCard(fc.card.rank);
+          const pipLayout = !showFaceArt ? PIP_LAYOUTS[fc.card.rank] : null;
+          
           return (
           <div
             key={`effect-${fc.card.rank}-${fc.card.race}-${i}`}
@@ -1545,11 +1549,30 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
               {/* カード背景 */}
               <div className="card-parchment" />
               
-              {/* 絵札イラスト（8, J, Q, K） */}
+              {/* 絵札イラスト（A, J, Q, K のみ） */}
+              {showFaceArt && (
               <div 
                 className="card-face-art field"
                 style={getFaceMaskStyle(fc.card.race, fc.card.rank)}
               />
+              )}
+              
+              {/* 8カードの場合はpip表示 */}
+              {pipLayout && (
+                <div className="card-pips field">
+                  {pipLayout.map((pip, j) => (
+                    <div
+                      key={j}
+                      className={`card-pip field ${pip.inverted ? 'inverted' : ''}`}
+                      style={{
+                        left: `${pip.x}%`,
+                        top: `${pip.y}%`,
+                        ...getSuitMaskStyle(fc.card.race),
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
               
               {/* ランク表示 */}
               <div className="card-rank top-left field">{fc.card.rank}</div>

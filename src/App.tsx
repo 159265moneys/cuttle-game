@@ -267,22 +267,26 @@ function App() {
     if (gameState.phase === 'sevenChoice' && gameState.sevenChoices) {
       const isSevenChoice = gameState.sevenChoices.some(c => c.id === card.id);
       if (isSevenChoice) {
-        const newDeck = gameState.deck.filter(c => c.id !== card.id);
-        const player = gameState[gameState.currentPlayer];
-        
-        setGameState(prev => prev ? ({
-          ...prev,
-          deck: newDeck,
-          [prev.currentPlayer]: {
-            ...player,
-            hand: [...player.hand, card],
-          },
-          selectedCard: card,
-          selectedAction: null,
-          phase: 'selectAction',
-          sevenChoices: undefined,
-          message: `${card.rank}をどう使う？`,
-        }) : null);
+        // 7の効果: 選択したカードを手札に加えてプレイ可能にする
+        setGameState(prev => {
+          if (!prev) return null;
+          const currentPlayer = prev[prev.currentPlayer];
+          // デッキから選択したカードを除外
+          const newDeck = prev.deck.filter(c => c.id !== card.id);
+          return {
+            ...prev,
+            deck: newDeck,
+            [prev.currentPlayer]: {
+              ...currentPlayer,
+              hand: [...currentPlayer.hand, card],
+            },
+            selectedCard: card,
+            selectedAction: null,
+            phase: 'selectAction',
+            sevenChoices: undefined,
+            message: `${card.rank}をどう使う？`,
+          };
+        });
         return;
       }
     }
