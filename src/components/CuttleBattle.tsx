@@ -497,7 +497,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   
   // HPリングのSVGパスを生成（連続した円弧、上から時計回り）
   const renderHPRing = (filled: number, goldFill: number, isEnemy: boolean, size: number) => {
-    const totalSegments = 21;
+    const totalSegments = 30;
     const strokeWidth = isEnemy ? 5 : 3; // プレイヤーは細く
     const radius = size / 2 - strokeWidth - 2;
     const cx = size / 2;
@@ -758,20 +758,20 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
   const enemyPoints = calculatePoints('player2');
   
   // 勝利点数（Kの枚数で変動）
-  const WINNING_POINTS: Record<number, number> = { 0: 21, 1: 14, 2: 10, 3: 7, 4: 5 };
+  const WINNING_POINTS: Record<number, number> = { 0: 30, 1: 20, 2: 14, 3: 10, 4: 7 };
   const playerWinTarget = WINNING_POINTS[Math.min(player.kings, 4)];
   const enemyWinTarget = WINNING_POINTS[Math.min(enemy.kings, 4)];
   
   // HPリング用: Kの枚数に応じた金色セグメント数
   const playerKings = player.field.filter(fc => fc.card.rank === 'K').length;
   const enemyKings = enemy.field.filter(fc => fc.card.rank === 'K').length;
-  // 金色セグメント = 21 - 必要勝利ポイント
-  const playerGoldFill = playerKings > 0 ? 21 - WINNING_POINTS[Math.min(playerKings, 4)] : 0;
-  const enemyGoldFill = enemyKings > 0 ? 21 - WINNING_POINTS[Math.min(enemyKings, 4)] : 0;
+  // 金色セグメント = 30 - 必要勝利ポイント
+  const playerGoldFill = playerKings > 0 ? 30 - WINNING_POINTS[Math.min(playerKings, 4)] : 0;
+  const enemyGoldFill = enemyKings > 0 ? 30 - WINNING_POINTS[Math.min(enemyKings, 4)] : 0;
   
-  // HPリング: 点数に応じた塗りつぶしセグメント数（21が最大）
-  const playerFilledSegments = Math.min(21, playerPoints + playerGoldFill);
-  const enemyFilledSegments = Math.min(21, enemyPoints + enemyGoldFill);
+  // HPリング: 点数に応じた塗りつぶしセグメント数（30が最大）
+  const playerFilledSegments = Math.min(30, playerPoints + playerGoldFill);
+  const enemyFilledSegments = Math.min(30, enemyPoints + enemyGoldFill);
   
   // 永続効果カード（8, J, Q, K）- ドロップ判定用
   const isPermanentEffect = (card: Card) => {
@@ -1095,7 +1095,7 @@ const CuttleBattle: React.FC<CuttleBattleProps> = ({
               if (card.rank === '4') {
                 addLog('player1', `${raceName}4で相手の手札を2枚捨てさせる`);
               } else if (card.rank === '5') {
-                addLog('player1', `${raceName}5で2枚ドロー`);
+                addLog('player1', `${raceName}5で3枚ドロー`);
               } else if (card.rank === '6') {
                 addLog('player1', `${raceName}6で全永続効果を破壊`);
                 // 6の効果: 両方の効果エリアで破壊演出

@@ -96,10 +96,10 @@ export const ROLE_NAME: Record<string, string> = {
 
 // 勝利に必要な点数（王の枚数別）
 export const WINNING_POINTS: Record<number, number> = {
-  0: 21,
-  1: 14,
-  2: 10,
-  3: 7,
-  4: 5,
+  0: 30,
+  1: 20,
+  2: 14,
+  3: 10,
+  4: 7,
 };
 

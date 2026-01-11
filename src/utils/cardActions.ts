@@ -220,8 +220,8 @@ export function executeOneOff(
     }
 
     case '5': {
-      // 山札から2枚ドロー
-      const drawCount = Math.min(2, newState.deck.length);
+      // 山札から3枚ドロー
+      const drawCount = Math.min(3, newState.deck.length);
       for (let i = 0; i < drawCount; i++) {
         const drawnCard = newState.deck.shift()!;
         player.hand.push(drawnCard);
